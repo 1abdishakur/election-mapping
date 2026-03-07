@@ -1,0 +1,13 @@
+.DS_Store
+*.tmp
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+node_modules/
+dist/
+build/
+.vscode/
+.idea/
+*.log

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Monitoring Dashboard</title>
+    <meta name="description"
+        content="Real-time election monitoring dashboard with interactive district maps and analytics.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Leaflet Measure -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.css" />
+    <script src="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.js"></script>
+
+    <!-- Leaflet MarkerCluster -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <!-- html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css?v=69">
+</head>
+
+<body>
+    <!-- ── LOADING OVERLAY ─────────────────────────────────── -->
+    <div id="loading-overlay">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <div class="loader-text">Loading election data...</div>
+        </div>
+    </div>
+
+    <div class="app">
+        <!-- ── HEADER ──────────────────────────────────────────── -->
+        <header class="navbar">
+            <div class="navbar-brand">
+                <button id="mobile-menu-toggle" class="mobile-only-btn" aria-label="Toggle Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <span class="brand-text">Elections Dashboard</span>
+            </div>
+            <div class="navbar-content" id="navbar-content">
+                <div class="navbar-badges hide-mobile">
+                    <div class="badge-item">States: <strong id="badge-states-count">…</strong></div>
+                    <div class="badge-item">Districts: <strong id="badge-districts-count">…</strong></div>
+                    <div class="badge-item">Centers: <strong id="badge-centers-count">…</strong></div>
+                    <div class="badge-item">Stations: <strong id="badge-stations-count">…</strong></div>
+                </div>
+                <div class="navbar-controls">
+                    <div class="control-item">
+                        <select id="state-filter" class="control-select">
+                            <option value="all">All States</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <select id="district-filter" class="control-select">
+                            <option value="all">All Districts</option>
+                        </select>
+                    </div>
+                    <div class="control-item search-wrap">
+                        <div class="search-box">
+                            <input type="text" id="district-search" class="control-select" placeholder="Search district…"
+                                autocomplete="off">
+                            <div id="search-results" class="search-dropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="navbar-actions">
+                    <button id="export-map-btn" class="btn btn-outline" style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        Export Map
+                    </button>
+                    <button id="reset-btn" class="btn btn-primary">Reset</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── BODY ───────────────────────────────────────────── -->
+        <div class="body-grid">
+
+            <!-- LEFT: Party Sidebar -->
+            <aside class="sidebar" id="party-sidebar">
+                <div class="sidebar-top">
+                    <div>
+                        <span class="sidebar-title">Parties</span>
+                        <button id="show-all-parties" class="link-btn" style="margin-left: 8px;">Show all</button>
+                    </div>
+                    <button class="toggle-btn" id="toggle-sidebar" title="Toggle Panel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="party-list" class="party-list">
+                    <div class="loading-msg">Loading…</div>
+                </div>
+            </aside>
+
+            <!-- CENTER: KPIs + Map -->
+            <div class="center-column">
+                <!-- KPI Row -->
+                <div class="kpi-row-wrapper">
+                    <div class="kpi-row">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Candidates</div>
+                            <div id="stat-candidates-gender" class="kpi-complex-val">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Parties Contested</div>
+                            <div class="kpi-value" id="stat-parties-contested">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Registered Voters</div>
+                            <div class="kpi-value" id="stat-registered">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">ID Collected</div>
+                            <div id="stat-id-cards" class="kpi-complex-val">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Voter Turnout</div>
+                            <div id="stat-turnout" class="kpi-complex-val">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Valid Votes</div>
+                            <div id="stat-votes-valid" class="kpi-complex-val">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Invalid Votes</div>
+                            <div id="stat-votes-invalid" class="kpi-complex-val">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="map-context-badge glass-panel" id="map-context">Voter Turnout — National View</div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Charts Panel -->
+            <aside class="charts-panel" id="charts-sidebar">
+                <div class="charts-top"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <button class="toggle-btn" id="toggle-charts" title="Toggle Panel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 18l6-6-6-6" />
+                        </svg>
+                    </button>
+                    <div class="panel-title" id="panel-context" style="margin-bottom:0; text-align:right;">National
+                        Overview</div>
+                </div>
+                <div class="chart-block">
+                    <div class="chart-title">Seats Won by Party</div>
+                    <canvas id="seatsWonChart"></canvas>
+                </div>
+                <div class="chart-block">
+                    <div class="chart-title">Votes Received by Party</div>
+                    <canvas id="partyVotesChart"></canvas>
+                </div>
+                <div class="chart-block">
+                    <div class="chart-title">Gender Representation (Cand. vs Winners)</div>
+                    <canvas id="genderRepChart"></canvas>
+                </div>
+                <div class="chart-block">
+                    <div class="chart-title">Votes vs Seats Efficiency</div>
+                    <canvas id="efficiencyChart"></canvas>
+                </div>
+            </aside>
+            <!-- FAB Container for Mobile -->
+            <div class="mobile-fab-container">
+                <button class="fab-btn" id="mobile-toggle-parties" title="Toggle Parties">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </button>
+                <button class="fab-btn" id="mobile-toggle-charts" title="Toggle Charts">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL COMMISSION</span>
+        </footer>
+    </div>
+    <script type="module" src="js/main.js?v=95"></script>
+</body>
+
+</html>

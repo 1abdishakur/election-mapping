@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=133';
-import { DataJoiner } from './dataJoiner.js?v=133';
-import { MapModule } from './map.js?v=133';
-import { ChartsModule } from './charts.js?v=133';
-import { UIController } from './ui.js?v=133';
+import { DataLoader } from './dataLoader.js?v=134';
+import { DataJoiner } from './dataJoiner.js?v=134';
+import { MapModule } from './map.js?v=134';
+import { ChartsModule } from './charts.js?v=134';
+import { UIController } from './ui.js?v=134';
 
 /** Central Application State */
 const AppState = {
@@ -167,19 +167,46 @@ class ElectionDashboard {
 
     onPartyClick(partyCode) {
         AppState.selectedParty = partyCode;
+
+        // UNZOOM: If a specific district was zoomed, reset view to the broader context (State or National)
+        if (AppState.selectedDistrict !== 'all') {
+            AppState.selectedDistrict = 'all';
+            const distFilter = document.getElementById('district-filter');
+            if (distFilter) distFilter.value = 'all';
+            
+            MapModule.selectedDistrictCode = null;
+            if (MapModule.geoJSONLayer?.getBounds().isValid()) {
+                MapModule.map.fitBounds(MapModule.geoJSONLayer.getBounds(), { padding: [25, 25] });
+            }
+            MapModule.showDistrictCenters(null);
+        }
+
         MapModule.highlightParty(partyCode);
 
         const filtered = this.filterDistricts();
         const partySummary = this.buildPartySummary(filtered, partyCode);
+        
+        // Update all metrics based on the broader context (not just the previous district)
         UIController.updateKPIs(partySummary);
         UIController.updateMiniPanel(partySummary);
         ChartsModule.update(partySummary, this.parties);
+
+        // Update the party list to reflect state/national performance for the labels below items
+        this.updatePartyList(partySummary, false);
 
         const name = this.parties[partyCode]?.party_name || partyCode;
         MapModule.setMode('default');
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(`${name}`, modeLabel);
+        
+        // Re-highlight the selected item since we just re-rendered the list
+        setTimeout(() => {
+            const items = document.querySelectorAll('.party-item');
+            items.forEach(it => {
+                if (it.dataset.code === partyCode) it.classList.add('selected');
+            });
+        }, 10);
     }
 
     onShowAllParties() {

@@ -12,7 +12,7 @@ export const MapModule = {
     _activePartyCode: null,
     selectedDistrictCode: null,
     _comparePanel: null,
-    _tickerControl: null,
+    _comparePanel: null,
     _miniMap: null,
     _hideTimer: null,
     _panelLocked: false,
@@ -126,11 +126,6 @@ export const MapModule = {
 
         // Labels need the map to have a center+zoom, so call after fitBounds
         this.updateLabels();
-
-        if (geoJSON && geoJSON.features) {
-            const allD = geoJSON.features.map(f => f.properties.data).filter(x => x);
-            this.createTicker(allD);
-        }
 
         return this.map;
     },
@@ -277,34 +272,7 @@ export const MapModule = {
         new MiniMapControl().addTo(this.map);
     },
 
-    createTicker(districts) {
-        if (this._tickerControl) this._tickerControl.remove();
-        const TickerControl = L.Control.extend({
-            options: { position: 'bottomleft' },
-            onAdd: function() {
-                const container = L.DomUtil.create('div', 'map-ticker');
-                container.innerHTML = `<div class="ticker-label">Live Updates</div><div class="ticker-content-wrapper"><div class="ticker-content"></div></div>`;
-                const content = container.querySelector('.ticker-content');
-                
-                const highlights = [];
-                // Top ID Collection
-                districts.sort((a,b) => b.id_collected_perc - a.id_collected_perc).slice(0, 3).forEach(d => {
-                    highlights.push(`<div class="ticker-item"><span class="ticker-bullet">★</span> ${d.district_name}: ${d.id_collected_perc.toFixed(1)}% ID Collection</div>`);
-                });
-                // Top Turnout
-                districts.sort((a,b) => b.turnout_perc - a.turnout_perc).slice(0, 3).forEach(d => {
-                    highlights.push(`<div class="ticker-item"><span class="ticker-bullet">⚡</span> ${d.district_name}: ${d.turnout_perc.toFixed(1)}% Turnout</div>`);
-                });
-                // Centers active
-                const totalCenters = districts.reduce((acc, d) => acc + (d.centers?.length || 0), 0);
-                highlights.push(`<div class="ticker-item"><span class="ticker-bullet">📍</span> National: ${totalCenters} Polling Centers Active</div>`);
 
-                content.innerHTML = highlights.join('') + highlights.join(''); // Loop
-                return container;
-            }
-        });
-        this._tickerControl = new TickerControl().addTo(this.map);
-    },
 
     // ── Hover Panel ────────────────────────────────────────────
     _showHoverPanel(d, mouseEvent) {

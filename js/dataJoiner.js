@@ -94,10 +94,11 @@ export const DataJoiner = {
             district.winner = this.getWinningParty(district.party_results);
 
             // Calculate Turnout Percentage (Based on ID Cards Collected per request)
-            const idHolders = district.id_cards_collected || 0;
+            const idHolders = (district.id_cards_collected || 0);
+            const actualTurnout = (district.valid_votes || 0) + (district.invalid_votes || 0);
             district.turnout_perc = idHolders > 0
-                ? (district.voters_turnout / idHolders) * 100
-                : (district.turnout_perc || 0);
+                ? (actualTurnout / idHolders) * 100
+                : 0;
 
             return district;
         });

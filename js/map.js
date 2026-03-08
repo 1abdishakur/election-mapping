@@ -240,7 +240,7 @@ export const MapModule = {
         const reg = d.registered_people || 1;
         const idcP = ((idc / reg) * 100).toFixed(1);
 
-        const turnout = d.voters_turnout || 0;
+        const turnout = (d.valid_votes || 0) + (d.invalid_votes || 0);
         const tnP = (d.turnout_perc || 0).toFixed(1);
 
         const vv = d.valid_votes || 0;
@@ -413,7 +413,8 @@ export const MapModule = {
                             break;
                         }
                         case 'turnout':
-                            statText = `${formatNum(d.voters_turnout || 0)} (${(d.turnout_perc || 0).toFixed(1)}%)`;
+                            const tVal = (d.valid_votes || 0) + (d.invalid_votes || 0);
+                            statText = `${formatNum(tVal)} (${(d.turnout_perc || 0).toFixed(1)}%)`;
                             break;
                         case 'votes': {
                             const vv = d.valid_votes || 0;

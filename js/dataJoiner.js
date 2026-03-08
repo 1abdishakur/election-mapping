@@ -93,10 +93,10 @@ export const DataJoiner = {
             // Determine Winning Party for this district (by seats_won or votes_received as fallback)
             district.winner = this.getWinningParty(district.party_results);
 
-            // Calculate Turnout Percentage
-            // The field is 'voters_turnout' (raw count), divide by registered_people
-            district.turnout_perc = district.registered_people > 0
-                ? (district.voters_turnout / district.registered_people) * 100
+            // Calculate Turnout Percentage (Based on ID Cards Collected per request)
+            const idHolders = district.id_cards_collected || 0;
+            district.turnout_perc = idHolders > 0
+                ? (district.voters_turnout / idHolders) * 100
                 : (district.turnout_perc || 0);
 
             return district;

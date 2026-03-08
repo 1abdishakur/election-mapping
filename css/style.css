@@ -824,7 +824,7 @@ a {
 .map-hover-panel {
   position: absolute;
   z-index: 2000;
-  pointer-events: none;
+  pointer-events: auto; /* Enable interaction with buttons */
   width: 300px; /* Slightly wider for the unified header row */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);

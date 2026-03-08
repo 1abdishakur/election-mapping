@@ -59,6 +59,11 @@ export const MapModule = {
         this._hoverPanel.style.display = 'none';
         document.getElementById(containerId).appendChild(this._hoverPanel);
 
+        // Interaction fix: Don't hide if mouse is in the panel
+        this._panelLocked = false;
+        this._hoverPanel.onmouseenter = () => { this._panelLocked = true; };
+        this._hoverPanel.onmouseleave = () => { this._panelLocked = false; this._hideHoverPanel(); };
+
         // Create the Pinned Comparison Panel
         this._comparePanel = document.createElement('div');
         this._comparePanel.className = 'comparison-panel';
@@ -437,7 +442,7 @@ export const MapModule = {
     },
 
     _moveHoverPanel(e) {
-        if (!this._hoverPanel || this._hoverPanel.style.display === 'none') return;
+        if (!this._hoverPanel || this._hoverPanel.style.display === 'none' || this._panelLocked) return;
         const mapEl = this._hoverPanel.parentElement;
         const rect = mapEl.getBoundingClientRect();
 
@@ -473,6 +478,7 @@ export const MapModule = {
     },
 
     _hideHoverPanel() {
+        if (this._panelLocked) return;
         if (this._hoverPanel) this._hoverPanel.style.display = 'none';
     },
 

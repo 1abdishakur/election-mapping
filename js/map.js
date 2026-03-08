@@ -186,7 +186,7 @@ export const MapModule = {
             if ((d.registered_people || 0) > maxVals.registered) maxVals.registered = d.registered_people;
             if ((d.id_collected_perc || 0) > maxVals.id_collected) maxVals.id_collected = d.id_collected_perc;
             if ((d.valid_votes || 0) > maxVals.votes) maxVals.votes = d.valid_votes;
-            if ((d.invalid_votes || 0) > maxVals.invalid) maxVals.invalid = d.invalid_votes;
+            if ((d.invalid_perc || 0) > maxVals.invalid) maxVals.invalid = d.invalid_perc;
         });
 
         // 5 ranges: [0%, 20%, 40%, 60%, 80%] of max
@@ -424,8 +424,8 @@ export const MapModule = {
                         }
                         case 'invalid': {
                             const iv = d.invalid_votes || 0;
-                            const tv = (d.valid_votes || 0) + iv;
-                            statText = `${formatNum(iv)} (${tv > 0 ? (iv / tv * 100).toFixed(1) : '0'}%)`;
+                            const ivp = d.invalid_perc || 0;
+                            statText = `${formatNum(iv)} (${ivp.toFixed(1)}%)`;
                             break;
                         }
                     }
@@ -493,7 +493,7 @@ export const MapModule = {
             case 'votes':
                 return this.scale(d.valid_votes, this.modeRanges.votes || [0, 5000, 25000, 75000, 200000], ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534']);
             case 'invalid':
-                return this.scale(d.invalid_votes, this.modeRanges.invalid || [0, 1000, 3000, 7000, 15000], ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444']);
+                return this.scale(d.invalid_perc, this.modeRanges.invalid || [0, 2, 5, 10, 20], ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444']);
             case 'winner':
                 return d.winner ? (d.winner.party_color || '#9ca3af') : '#e5e7eb';
             default:
@@ -682,7 +682,7 @@ export const MapModule = {
                 registered: { label: 'Registered Voters', stops: self.modeRanges?.registered || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
                 id_collected: { label: 'ID Cards Collected', stops: self.modeRanges?.id_collected || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '%' },
                 votes: { label: 'Valid Votes', stops: self.modeRanges?.votes || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
-                invalid: { label: 'Invalid Votes', stops: self.modeRanges?.invalid || [0, 20, 40, 60, 80], colors: ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444'], suffix: '' },
+                invalid: { label: 'Invalid Votes', stops: self.modeRanges?.invalid || [0, 2, 5, 10, 20], colors: ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444'], suffix: '%' },
                 winner: { label: 'Winner', stops: [], colors: [] }
             };
             const cfg = configs[self.currentMode] || configs.turnout;

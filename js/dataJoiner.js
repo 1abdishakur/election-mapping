@@ -105,6 +105,11 @@ export const DataJoiner = {
             district.turnout_perc = idHolders > 0
                 ? (actualTurnout / idHolders) * 100
                 : 0;
+            
+            // Calculate Invalid Votes Percentage (relative to total votes)
+            district.invalid_perc = actualTurnout > 0
+                ? (Number(district.invalid_votes || 0) / actualTurnout) * 100
+                : 0;
 
             return district;
         });

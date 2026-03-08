@@ -411,6 +411,11 @@ export const MapModule = {
         this._renderPinnedDistricts();
     },
 
+    clearPinnedDistricts() {
+        this._pinnedDistricts = [];
+        this._renderPinnedDistricts();
+    },
+
     _renderPinnedDistricts() {
         if (!this._comparePanel) return;
         if (this._pinnedDistricts.length === 0) {

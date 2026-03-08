@@ -215,7 +215,7 @@ export const UIController = {
         if (statInvalid) {
             statInvalid.innerHTML = `
                 <div class="kpi-main-val">0</div>
-                <div class="kpi-sub">${fmtPct(data.invalidPct)}</div>
+                <div class="kpi-sub" style="color:var(--c-danger); font-weight:700;">${fmtPct(data.invalidPct)}</div>
             `;
             this._animateNumber(statInvalid.querySelector('.kpi-main-val'), data.totalInvalid);
         }

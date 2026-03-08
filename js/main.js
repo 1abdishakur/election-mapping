@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=134';
-import { DataJoiner } from './dataJoiner.js?v=134';
-import { MapModule } from './map.js?v=134';
-import { ChartsModule } from './charts.js?v=134';
-import { UIController } from './ui.js?v=134';
+import { DataLoader } from './dataLoader.js?v=135';
+import { DataJoiner } from './dataJoiner.js?v=135';
+import { MapModule } from './map.js?v=135';
+import { ChartsModule } from './charts.js?v=135';
+import { UIController } from './ui.js?v=135';
 
 /** Central Application State */
 const AppState = {
@@ -213,6 +213,7 @@ class ElectionDashboard {
         AppState.selectedParty = null;
         UIController.clearPartySelection();
         MapModule.resetStyles();
+        MapModule.clearPinnedDistricts(); // Clear comparison on "See All"
 
         const filtered = this.filterDistricts();
         const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
@@ -243,6 +244,7 @@ class ElectionDashboard {
         MapModule.filterByState('all', this.geoJSON);
         MapModule.selectedDistrictCode = null;
         MapModule.resetStyles();
+        MapModule.clearPinnedDistricts(); // Clear comparison on Reset
         MapModule.setMode('default');
 
         if (MapModule.geoJSONLayer?.getBounds().isValid()) {

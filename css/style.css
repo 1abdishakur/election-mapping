@@ -1970,16 +1970,28 @@ a {
   flex: 1;
 }
 
+[data-theme="dark"] .size-btn, [data-theme="dark"] .orient-btn {
+  background: var(--c-surface-2);
+  border-color: var(--c-border);
+  color: var(--c-text-2);
+}
+
 .size-btn:hover, .orient-btn:hover {
   background: var(--c-surface-2);
   border-color: var(--c-border-2);
 }
 
-.size-btn.selected, .orient-btn.selected {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
-  color: #fff;
+[data-theme="dark"] .size-btn:hover, [data-theme="dark"] .orient-btn:hover {
+  background: var(--c-surface);
+  border-color: var(--c-border-2);
 }
+
+.size-btn.selected, .orient-btn.selected {
+  background: var(--c-primary) !important;
+  border-color: var(--c-primary) !important;
+  color: #fff !important;
+}
+
 
 .orientation-toggle {
   display: flex;

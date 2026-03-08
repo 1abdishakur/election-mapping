@@ -1013,23 +1013,25 @@ export const MapModule = {
         });
 
         confirmBtn.onclick = async () => {
-            const size = modal.querySelector('.size-btn.selected').dataset.size;
-            const orientation = modal.querySelector('.orient-btn.selected').dataset.orient;
+            const size = modal.querySelector('.size-btn.selected')?.dataset.size || 'a4';
+            const orientation = modal.querySelector('.orient-btn.selected')?.dataset.orient || 'portrait';
             const showLegend = document.getElementById('export-show-legend').checked;
             const showTitle = document.getElementById('export-show-title').checked;
 
             confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Generating...';
+            const originalText = confirmBtn.textContent;
+            confirmBtn.textContent = 'Capture & Render…'; // Inform user what's happening
 
             try {
+                console.log(`[Export] Generating ${size} ${orientation} PDF…`);
                 await this.generateModernPDF({ size, orientation, showLegend, showTitle });
                 closeModal();
             } catch (err) {
-                console.error("PDF Export failed: ", err);
-                alert("Failed to generate PDF. Please try again.");
+                console.error("[Export] FAILED:", err);
+                alert(`PDF Export Error: ${err.message || "Unknown Failure"}`);
             } finally {
                 confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Generate PDF';
+                confirmBtn.textContent = originalText;
             }
         };
     },
@@ -1037,36 +1039,48 @@ export const MapModule = {
     async generateModernPDF(options) {
         const { size, orientation, showLegend, showTitle } = options;
         
+        // Ensure libraries exist
+        if (!window.html2canvas) throw new Error("html2canvas library missing.");
+        if (!window.jspdf) throw new Error("jsPDF library missing.");
+
         // 1. Determine Context Bounds for Smart Zoom
         let bounds = null;
         if (this.selectedDistrictCode && this.geoJSONLayer) {
             this.geoJSONLayer.eachLayer(layer => {
                 const props = layer.feature?.properties?.data;
-                if (props && (props.dist_code === this.selectedDistrictCode || props.district_code === this.selectedDistrictCode)) {
-                    bounds = layer.getBounds();
-                }
+                const match = props && (props.dist_code === this.selectedDistrictCode || props.district_code === this.selectedDistrictCode);
+                if (match) bounds = layer.getBounds();
             });
         }
 
         if (!bounds && this.geoJSONLayer) {
-            bounds = this.geoJSONLayer.getBounds(); // Either state or national depending on current layer state
+            bounds = this.geoJSONLayer.getBounds();
         }
 
         // Apply smart zoom if bounds found
         if (bounds && bounds.isValid()) {
-            this.map.fitBounds(bounds, { padding: [20, 20], animate: false });
+            this.map.fitBounds(bounds, { padding: [10, 10], animate: false });
         }
 
-        // Wait a bit for map to settle/tiles to load
-        await new Promise(r => setTimeout(r, 800));
+        // Wait for tiles & settlement
+        await new Promise(r => setTimeout(r, 1200));
 
         const mapContainer = document.querySelector('.map-container');
+        if (!mapContainer) throw new Error("Map container not found.");
+
+        // Capture Map (Safer ignore logic)
         const canvas = await window.html2canvas(mapContainer, {
             useCORS: true,
             allowTaint: false,
-            scale: 2, // Higher quality
-            backgroundColor: '#f1f5f9',
-            ignoreElements: (el) => el.classList.contains('leaflet-control-zoom') || el.classList.contains('leaflet-control-attribution')
+            scale: size === 'a0' || size === 'a1' ? 1.5 : 2, // Scale down for huge prints to save memory
+            backgroundColor: document.documentElement.dataset.theme === 'dark' ? '#0f172a' : '#f1f5f9',
+            ignoreElements: (el) => {
+                if (!el.classList) return false;
+                return el.classList.contains('leaflet-control-zoom') 
+                    || el.classList.contains('leaflet-control-attribution')
+                    || el.classList.contains('leaflet-control-layers')
+                    || el.classList.contains('leaflet-control-measure');
+            }
         });
 
         const { jsPDF } = window.jspdf;
@@ -1079,40 +1093,48 @@ export const MapModule = {
         const pw = pdf.internal.pageSize.getWidth();
         const ph = pdf.internal.pageSize.getHeight();
         const margin = 15;
+        const isDark = document.documentElement.dataset.theme === 'dark';
+
+        // Draw Background if dark
+        if (isDark) {
+            pdf.setFillColor(15, 23, 42); // Navy/Dark background
+            pdf.rect(0, 0, pw, ph, 'F');
+        }
 
         // Draw Frame
-        pdf.setDrawColor(229, 231, 235);
-        pdf.setLineWidth(0.5);
+        pdf.setDrawColor(isDark ? 51 : 229, isDark ? 65 : 231, isDark ? 85 : 235);
+        pdf.setLineWidth(0.4);
         pdf.rect(margin - 5, margin - 5, pw - (margin * 2) + 10, ph - (margin * 2) + 10);
 
         let currentY = margin;
 
         // Title
         if (showTitle) {
-            const contextText = document.getElementById('map-context')?.textContent || 'Election Map Overview';
+            const contextText = document.getElementById('map-context')?.textContent || 'National Election Overview';
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(size === 'a0' ? 32 : size === 'a1' ? 28 : 22);
+            pdf.setTextColor(isDark ? 249 : 31, isDark ? 250 : 41, isDark ? 251 : 55);
             pdf.text(contextText.toUpperCase(), margin, currentY);
-            currentY += (size === 'a0' ? 15 : 10);
+            currentY += (size === 'a0' ? 18 : 12);
             
             pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(10);
             pdf.setTextColor(156, 163, 175);
-            pdf.text(`Generated on: ${new Date().toLocaleString()}`, margin, currentY);
-            currentY += 10;
+            pdf.text(`REPORTING DATE: ${new Date().toLocaleString().toUpperCase()}`, margin, currentY);
+            currentY += 12;
         }
 
-        // Map Image
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        // Map Image (Centering & Scaling)
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
         const mapW = pw - (margin * 2);
         const mapH = (canvas.height * mapW) / canvas.width;
         
-        // Ensure map fits height
-        const availableH = ph - currentY - margin - (showLegend ? 30 : 0);
+        // Check available space
+        const availH = ph - currentY - margin - (showLegend ? 35 : 0);
         let finalH = mapH;
         let finalW = mapW;
-        if (mapH > availableH) {
-            finalH = availableH;
+        if (mapH > availH) {
+            finalH = availH;
             finalW = (canvas.width * finalH) / canvas.height;
         }
         
@@ -1120,23 +1142,29 @@ export const MapModule = {
         pdf.addImage(imgData, 'JPEG', centerX, currentY, finalW, finalH);
         currentY += finalH + 10;
 
-        // Legend if needed
+        // Legend Rendering
         if (showLegend && this.legendControl) {
             const legendEl = document.querySelector('.info.legend');
             if (legendEl) {
-                const legendCanvas = await window.html2canvas(legendEl, { scale: 2 });
-                const legData = legendCanvas.toDataURL('image/png');
-                const legW = 50; 
-                const legH = (legendCanvas.height * legW) / legendCanvas.width;
-                pdf.addImage(legData, 'PNG', pw - legW - margin, ph - legH - margin - 5, legW, legH);
+                try {
+                    const legCanvas = await window.html2canvas(legendEl, { 
+                        scale: 1.5,
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff' 
+                    });
+                    const legW = size === 'a0' ? 80 : 50; 
+                    const legH = (legCanvas.height * legW) / legCanvas.width;
+                    pdf.addImage(legCanvas.toDataURL('image/png'), 'PNG', pw - legW - margin, ph - legH - margin - 8, legW, legH);
+                } catch (ce) { console.warn("Legend render skipped", ce); }
             }
         }
 
-        // Footer Branding
-        pdf.setFontSize(8);
+        // Branding
+        pdf.setFontSize(9);
         pdf.setTextColor(156, 163, 175);
-        pdf.text("NATIONAL INDEPENDENT ELECTORAL COMMISSION | Technical Operational Boundaries Only", margin, ph - margin + 4);
+        const brandingText = "NATIONAL INDEPENDENT ELECTORAL COMMISSION | NIEC TECHNICAL OPERATIONS SYSTEM";
+        pdf.text(brandingText, margin, ph - margin + 4);
 
-        pdf.save(`Election_Map_${size.toUpperCase()}_${new Date().getTime()}.pdf`);
+        // Final Save Trigger
+        pdf.save(`NIEC_REPORT_${size.toUpperCase()}_#${new Date().getTime()}.pdf`);
     }
 };

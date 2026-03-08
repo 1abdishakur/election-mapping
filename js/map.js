@@ -659,6 +659,7 @@ export const MapModule = {
     styleFeature(feature) {
         const d = feature.properties.data || {};
         const color = this.getColor(d);
+        const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
         const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
         const borderColor = isSelected ? '#fbbf24' : (activeTheme === 'dark' ? '#CBD5F5' : '#6B7280');
         

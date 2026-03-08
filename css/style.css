@@ -1661,14 +1661,13 @@ a {
   pointer-events: none; /* User requested non-interactive */
 }
 
-/* Unified Comparison Card (Side-by-Side) */
+/* High-Density Comparison Arena (Zero Scroll) */
 .comparison-panel {
   position: absolute;
   top: 70px;
   left: 20px;
   width: auto;
-  max-width: 600px;
-  max-height: calc(100% - 140px);
+  max-width: 900px; /* Allow expansion for side-by-side */
   z-index: 1200;
   display: none;
   background: rgba(255, 255, 255, 0.98);
@@ -1678,10 +1677,11 @@ a {
   border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow-y: auto;
+  overflow: visible; /* No scroll, show all data */
   flex-direction: column;
   pointer-events: auto;
 }
+
 
 
 .cp-card-header {
@@ -1707,23 +1707,23 @@ a {
 }
 
 .cp-table {
-  width: 100%;
+  width: auto;
   border-collapse: collapse;
   font-size: 11px;
 }
 
 .cp-table th {
-  padding: 8px 12px;
+  padding: 8px 15px; /* Balanced padding */
   text-align: left;
-  background: #f8fafc;
-  color: #64748b;
-  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 800;
   text-transform: uppercase;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .cp-table td {
-  padding: 6px 12px;
+  padding: 5px 15px;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
   font-weight: 500;
@@ -1733,18 +1733,20 @@ a {
 .cp-table tr:last-child td { border-bottom: none; }
 
 .cp-label-col {
-  color: #94a3b8 !important;
-  font-weight: 700 !important;
+  color: #64748b !important;
+  font-weight: 800 !important;
   text-transform: uppercase;
   font-size: 9px;
-  width: 1%; /* Shrink to fit content */
+  background: #f8fafc;
+  width: 1%;
 }
 
 .cp-val-col {
   font-weight: 800 !important;
-  text-align: right;
-  min-width: 80px;
+  text-align: center;
+  min-width: 100px;
 }
+
 
 .cp-winner-cell {
   padding: 8px 12px !important;

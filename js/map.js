@@ -443,7 +443,7 @@ export const MapModule = {
                 <span class="cp-card-title">District Comparison Arena</span>
                 <span class="cp-card-close" id="cp-global-close">×</span>
             </div>
-            <div class="cp-body" style="overflow-x:auto;">
+            <div class="cp-body">
                 <table class="cp-table">
                     <thead id="cp-thead"></thead>
                     <tbody id="cp-tbody"></tbody>
@@ -460,13 +460,13 @@ export const MapModule = {
         const tbody = this._comparePanel.querySelector('#cp-tbody');
 
         // Build Header Row
-        let headHtml = `<tr><th class="cp-label-col">Metrics</th>`;
+        let headHtml = `<tr><th class="cp-label-col" style="background:#f1f5f9;">DATA FIELDS</th>`;
         this._pinnedDistricts.forEach((d, idx) => {
             headHtml += `
-                <th>
+                <th style="min-width:140px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${d.district_name}</span>
-                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; margin-left:10px; opacity:0.5;">×</span>
+                        <span style="color:#1e293b;">${d.district_name}</span>
+                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:#ef4444; font-size:16px;">×</span>
                     </div>
                 </th>`;
         });
@@ -475,7 +475,6 @@ export const MapModule = {
 
         // Build Data Rows
         const metrics = [
-            { label: 'Seats', key: 'total_seats', format: v => v || 0 },
             { label: 'Category', key: 'district_category', format: v => v || '—' },
             { label: 'Reg. People', key: 'registered_people', format: v => (v || 0).toLocaleString() },
             { label: 'Total Votes', calc: d => (d.valid_votes || 0) + (d.invalid_votes || 0), format: v => v.toLocaleString() },
@@ -501,12 +500,12 @@ export const MapModule = {
             const w = d.winner;
             winnerHtml += `<td class="cp-winner-cell" style="vertical-align:top;">
                 ${w ? `
-                    <div style="display:flex; flex-direction:column; gap:2px; padding:4px 0;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0;"></div>
-                            <span style="font-weight:800; color:#1e293b; font-size:10px; white-space:normal; line-height:1.1;">${w.party_name || '—'}</span>
+                            <span style="font-weight:800; color:#1e293b; font-size:10px; white-space:normal; line-height:1.1; max-width:120px;">${w.party_name || '—'}</span>
                         </div>
-                        <div style="font-weight:700; color:#92400e; font-size:9px; margin-left:14px;">${w.seats_won || 0} SEATS WON</div>
+                        <div style="font-weight:700; color:#92400e; font-size:9px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
                     </div>
                 ` : '—'}
             </td>`;

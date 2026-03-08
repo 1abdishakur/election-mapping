@@ -1667,7 +1667,8 @@ a {
   top: 70px;
   left: 20px;
   width: auto;
-  max-width: 500px;
+  max-width: 600px;
+  max-height: calc(100% - 140px);
   z-index: 1200;
   display: none;
   background: rgba(255, 255, 255, 0.98);
@@ -1677,10 +1678,11 @@ a {
   border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  overflow-y: auto;
   flex-direction: column;
   pointer-events: auto;
 }
+
 
 .cp-card-header {
   background: #fffbeb;

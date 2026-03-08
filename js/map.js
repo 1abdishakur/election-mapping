@@ -496,14 +496,17 @@ export const MapModule = {
         });
 
         // Winner Row
-        let winnerHtml = `<tr><td class="cp-label-col">Winner</td>`;
+        let winnerHtml = `<tr><td class="cp-label-col" style="vertical-align:top; padding-top:12px;">Winner</td>`;
         this._pinnedDistricts.forEach(d => {
             const w = d.winner;
-            winnerHtml += `<td class="cp-winner-cell">
+            winnerHtml += `<td class="cp-winner-cell" style="vertical-align:top;">
                 ${w ? `
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}"></div>
-                        <span style="font-weight:700; color:#1e293b; font-size:10px;">${w.party_code || '—'}</span>
+                    <div style="display:flex; flex-direction:column; gap:2px; padding:4px 0;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0;"></div>
+                            <span style="font-weight:800; color:#1e293b; font-size:10px; white-space:normal; line-height:1.1;">${w.party_name || '—'}</span>
+                        </div>
+                        <div style="font-weight:700; color:#92400e; font-size:9px; margin-left:14px;">${w.seats_won || 0} SEATS WON</div>
                     </div>
                 ` : '—'}
             </td>`;

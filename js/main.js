@@ -18,6 +18,7 @@ class ElectionDashboard {
         this.geoJSON = null;
         this.globalSummary = null;
         this.parties = {};
+        this.allTables = {}; // Store raw data for consistent global counts
     }
 
     async init() {
@@ -33,6 +34,7 @@ class ElectionDashboard {
             console.log(`[Data] ${k}: ${v.length} rows`);
         });
 
+        this.allTables = rawTables;
         const result = DataJoiner.processData(rawTables);
         this.masterData = result.districtMaster;
         this.globalSummary = result.summary;
@@ -101,7 +103,7 @@ class ElectionDashboard {
         MapModule.filterByState(code, this.geoJSON);
         MapModule.resetStyles();
 
-        const summary = DataJoiner.computeGlobalTotals(filtered, this.parties);
+        const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
         UIController.updateKPIs(summary);
         UIController.updateMiniPanel(summary);
         ChartsModule.update(summary, this.parties);
@@ -121,7 +123,7 @@ class ElectionDashboard {
 
         if (code === 'all') {
             const filtered = this.filterDistricts();
-            const summary = DataJoiner.computeGlobalTotals(filtered, this.parties);
+            const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
             MapModule.filterByState(AppState.selectedState, this.geoJSON);
             MapModule.resetStyles();
             UIController.updateKPIs(summary);
@@ -186,7 +188,7 @@ class ElectionDashboard {
         MapModule.resetStyles();
 
         const filtered = this.filterDistricts();
-        const summary = DataJoiner.computeGlobalTotals(filtered, this.parties);
+        const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
         UIController.updateKPIs(summary);
         UIController.updateMiniPanel(summary);
         ChartsModule.update(summary, this.parties);

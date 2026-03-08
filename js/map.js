@@ -438,24 +438,11 @@ export const MapModule = {
         }
 
         this._comparePanel.style.display = 'flex';
-        this._comparePanel.innerHTML = `
-            <div class="cp-main-header">
-                <span class="cp-main-title">District Duel View — Parallel Comparison</span>
-                <span class="cp-main-close" id="cp-main-close">×</span>
-            </div>
-            <div class="cp-cols-wrapper" id="cp-cols-wrapper"></div>
-        `;
-
-        this._comparePanel.querySelector('#cp-main-close').onclick = () => {
-            this._pinnedDistricts = [];
-            this._renderPinnedDistricts();
-        };
-
-        const wrapper = this._comparePanel.querySelector('#cp-cols-wrapper');
+        this._comparePanel.innerHTML = '';
 
         this._pinnedDistricts.forEach((d, idx) => {
-            const col = document.createElement('div');
-            col.className = 'cp-col';
+            const card = document.createElement('div');
+            card.className = 'comparison-card';
 
             const formatNum = (num) => (num || 0).toLocaleString();
             const idc = d.id_cards_collected || 0;
@@ -470,50 +457,39 @@ export const MapModule = {
             const ivP = tv > 0 ? ((iv / tv) * 100).toFixed(1) : '0';
 
             const winnerHtml = d.winner ? `
-                <div class="hp-divider"></div>
-                <div class="hp-winner-content" style="background:rgba(248, 250, 252, 0.8)">
+                <div class="cp-metric-row" style="background:rgba(248, 250, 252, 0.8); margin-top:8px; border-radius:4px; padding:6px 8px;">
                     <div class="hp-party-swatch" style="background:${d.winner.party_color || '#6b7280'}"></div>
-                    <span class="hp-party-name">${d.winner.party_name}</span>
-                    <span class="hp-party-seats">${d.winner.seats_won} seats</span>
+                    <span class="hp-party-name" style="font-size:11px; margin-left:8px;">${d.winner.party_name}</span>
+                    <span class="hp-party-seats" style="font-size:10px;">${d.winner.seats_won} seats</span>
                 </div>` : '';
 
-            col.innerHTML = `
-                <div class="cp-col-header">
-                    <span class="cp-dist-name">${d.district_name}</span>
-                    <span class="cp-dist-close" data-idx="${idx}">×</span>
+            card.innerHTML = `
+                <div class="cp-card-header">
+                    <span class="cp-card-title">${d.district_name}</span>
+                    <span class="cp-card-close" data-idx="${idx}">×</span>
                 </div>
-                <div class="hp-header" style="background:transparent; border:none; padding-bottom:0;">
-                    <div class="hp-row-top">
-                        <span class="hp-state-info" style="border:none; padding:0; margin:0;">${(d.state?.state_name) || ''}</span>
+                <div class="cp-card-body">
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
                         <span class="hp-seats-badge">Seats: ${d.total_seats || 0}</span>
                         <span class="hp-cat-badge">Cat: ${d.district_category || '—'}</span>
                     </div>
-                </div>
-                <div class="hp-body" style="padding-top:10px;">
-                    <div class="hp-grid" style="gap:15px;">
-                        <div class="hp-col"><div class="hp-label">Reg. People</div><strong>${formatNum(reg)}</strong></div>
-                        <div class="hp-col"><div class="hp-label">Total Votes</div><strong>${formatNum(turnout)}</strong></div>
-                    </div>
-                    <div class="hp-grid mt-1" style="gap:15px;">
-                        <div class="hp-col"><div class="hp-label">ID Coll. %</div><strong>${idcP}%</strong></div>
-                        <div class="hp-col"><div class="hp-label">Turnout %</div><strong>${tnP}%</strong></div>
-                    </div>
-                    <div class="hp-divider"></div>
-                    <div class="hp-grid" style="gap:15px;">
-                        <div class="hp-col"><div class="hp-label">Valid %</div><strong>${vvP}%</strong></div>
-                        <div class="hp-col"><div class="hp-label">Invalid %</div><strong>${ivP}%</strong></div>
-                    </div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">Reg. People</span> <span class="cp-metric-value">${formatNum(reg)}</span></div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">Total Votes</span> <span class="cp-metric-value">${formatNum(turnout)}</span></div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">ID Coll. %</span> <span class="cp-metric-value">${idcP}%</span></div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">Turnout %</span> <span class="cp-metric-value">${tnP}%</span></div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">Valid %</span> <span class="cp-metric-value">${vvP}%</span></div>
+                    <div class="cp-metric-row"><span class="cp-metric-label">Invalid %</span> <span class="cp-metric-value">${ivP}%</span></div>
                     ${winnerHtml}
                 </div>
             `;
 
-            col.querySelector('.cp-dist-close').onclick = (e) => {
+            card.querySelector('.cp-card-close').onclick = (e) => {
                 L.DomEvent.stopPropagation(e);
                 this._pinnedDistricts.splice(idx, 1);
                 this._renderPinnedDistricts();
             };
 
-            wrapper.appendChild(col);
+            this._comparePanel.appendChild(card);
         });
     },
 

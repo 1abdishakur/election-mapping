@@ -1661,51 +1661,88 @@ a {
   pointer-events: none; /* User requested non-interactive */
 }
 
-/* Comparison Panel (Pinned Stack) */
+/* Comparison Container (Dual/Triple Column View) */
 .comparison-panel {
   position: absolute;
-  top: 60px;
-  left: 20px;
-  width: auto;
-  max-height: calc(100% - 140px);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 1100;
-  pointer-events: none; /* Let clicks pass to map if not on a card */
-  overflow-y: auto;
-  padding-bottom: 20px;
-}
-
-.comparison-card {
-  width: 280px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
-  border: 1px solid #fbbf24;
-  border-left: 4px solid #fbbf24;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: none;
   pointer-events: auto;
-  animation: slideInLeft 0.3s ease-out;
-  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  border: 1px solid #fbbf24;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 95vw;
+  animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.cp-pin-header {
+.cp-main-header {
   background: #fffbeb;
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-bottom: 1px solid #fef3c7;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 8px 8px 0 0;
 }
-.cp-pin-title {
-  font-size: 10px;
+.cp-main-title {
+  font-size: 11px;
   font-weight: 800;
   color: #92400e;
   text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
-.cp-close { cursor: pointer; font-size: 14px; color: #b45309; }
+.cp-main-close {
+  cursor: pointer;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.cp-cols-wrapper {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.cp-col {
+  width: 260px;
+  min-width: 240px;
+  padding: 0;
+  border-right: 1px solid #f1f5f9;
+  position: relative;
+}
+.cp-col:last-child { border-right: none; }
+
+.cp-col-header {
+  padding: 12px 16px;
+  background: rgba(248, 250, 252, 0.5);
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cp-dist-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.cp-dist-close {
+  cursor: pointer;
+  font-size: 16px;
+  color: #94a3b8;
+}
+.cp-dist-close:hover { color: #ef4444; }
+
+@keyframes slideInDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 
 /* Live Ticker */
 .map-ticker {

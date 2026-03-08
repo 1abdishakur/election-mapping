@@ -438,11 +438,24 @@ export const MapModule = {
         }
 
         this._comparePanel.style.display = 'flex';
-        this._comparePanel.innerHTML = '';
+        this._comparePanel.innerHTML = `
+            <div class="cp-main-header">
+                <span class="cp-main-title">District Duel View — Parallel Comparison</span>
+                <span class="cp-main-close" id="cp-main-close">×</span>
+            </div>
+            <div class="cp-cols-wrapper" id="cp-cols-wrapper"></div>
+        `;
+
+        this._comparePanel.querySelector('#cp-main-close').onclick = () => {
+            this._pinnedDistricts = [];
+            this._renderPinnedDistricts();
+        };
+
+        const wrapper = this._comparePanel.querySelector('#cp-cols-wrapper');
 
         this._pinnedDistricts.forEach((d, idx) => {
-            const card = document.createElement('div');
-            card.className = 'comparison-card';
+            const col = document.createElement('div');
+            col.className = 'cp-col';
 
             const formatNum = (num) => (num || 0).toLocaleString();
             const idc = d.id_cards_collected || 0;
@@ -458,16 +471,16 @@ export const MapModule = {
 
             const winnerHtml = d.winner ? `
                 <div class="hp-divider"></div>
-                <div class="hp-winner-content">
+                <div class="hp-winner-content" style="background:rgba(248, 250, 252, 0.8)">
                     <div class="hp-party-swatch" style="background:${d.winner.party_color || '#6b7280'}"></div>
                     <span class="hp-party-name">${d.winner.party_name}</span>
                     <span class="hp-party-seats">${d.winner.seats_won} seats</span>
                 </div>` : '';
 
-            card.innerHTML = `
-                <div class="cp-pin-header">
-                    <span class="cp-pin-title">${d.district_name}</span>
-                    <span class="cp-close" data-idx="${idx}">×</span>
+            col.innerHTML = `
+                <div class="cp-col-header">
+                    <span class="cp-dist-name">${d.district_name}</span>
+                    <span class="cp-dist-close" data-idx="${idx}">×</span>
                 </div>
                 <div class="hp-header" style="background:transparent; border:none; padding-bottom:0;">
                     <div class="hp-row-top">
@@ -476,17 +489,17 @@ export const MapModule = {
                         <span class="hp-cat-badge">Cat: ${d.district_category || '—'}</span>
                     </div>
                 </div>
-                <div class="hp-body" style="padding-top:5px;">
-                    <div class="hp-grid">
-                        <div class="hp-col"><div class="hp-label">Reg.</div><strong>${formatNum(reg)}</strong></div>
-                        <div class="hp-col"><div class="hp-label">Total Vote</div><strong>${formatNum(turnout)}</strong></div>
+                <div class="hp-body" style="padding-top:10px;">
+                    <div class="hp-grid" style="gap:15px;">
+                        <div class="hp-col"><div class="hp-label">Reg. People</div><strong>${formatNum(reg)}</strong></div>
+                        <div class="hp-col"><div class="hp-label">Total Votes</div><strong>${formatNum(turnout)}</strong></div>
                     </div>
-                    <div class="hp-grid mt-1">
+                    <div class="hp-grid mt-1" style="gap:15px;">
                         <div class="hp-col"><div class="hp-label">ID Coll. %</div><strong>${idcP}%</strong></div>
                         <div class="hp-col"><div class="hp-label">Turnout %</div><strong>${tnP}%</strong></div>
                     </div>
                     <div class="hp-divider"></div>
-                    <div class="hp-grid">
+                    <div class="hp-grid" style="gap:15px;">
                         <div class="hp-col"><div class="hp-label">Valid %</div><strong>${vvP}%</strong></div>
                         <div class="hp-col"><div class="hp-label">Invalid %</div><strong>${ivP}%</strong></div>
                     </div>
@@ -494,13 +507,13 @@ export const MapModule = {
                 </div>
             `;
 
-            card.querySelector('.cp-close').onclick = (e) => {
+            col.querySelector('.cp-dist-close').onclick = (e) => {
                 L.DomEvent.stopPropagation(e);
                 this._pinnedDistricts.splice(idx, 1);
                 this._renderPinnedDistricts();
             };
 
-            this._comparePanel.appendChild(card);
+            wrapper.appendChild(col);
         });
     },
 

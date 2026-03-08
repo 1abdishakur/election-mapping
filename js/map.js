@@ -438,58 +438,86 @@ export const MapModule = {
         }
 
         this._comparePanel.style.display = 'flex';
-        this._comparePanel.innerHTML = '';
+        this._comparePanel.innerHTML = `
+            <div class="cp-card-header">
+                <span class="cp-card-title">District Comparison Arena</span>
+                <span class="cp-card-close" id="cp-global-close">×</span>
+            </div>
+            <div class="cp-body" style="overflow-x:auto;">
+                <table class="cp-table">
+                    <thead id="cp-thead"></thead>
+                    <tbody id="cp-tbody"></tbody>
+                </table>
+            </div>
+        `;
 
+        this._comparePanel.querySelector('#cp-global-close').onclick = () => {
+            this._pinnedDistricts = [];
+            this._renderPinnedDistricts();
+        };
+
+        const thead = this._comparePanel.querySelector('#cp-thead');
+        const tbody = this._comparePanel.querySelector('#cp-tbody');
+
+        // Build Header Row
+        let headHtml = `<tr><th class="cp-label-col">Metrics</th>`;
         this._pinnedDistricts.forEach((d, idx) => {
-            const card = document.createElement('div');
-            card.className = 'comparison-card';
-
-            const formatNum = (num) => (num || 0).toLocaleString();
-            const idc = d.id_cards_collected || 0;
-            const reg = d.registered_people || 1;
-            const idcP = ((idc / reg) * 100).toFixed(1);
-            const turnout = (d.valid_votes || 0) + (d.invalid_votes || 0);
-            const tnP = (d.turnout_perc || 0).toFixed(1);
-            const vv = d.valid_votes || 0;
-            const iv = d.invalid_votes || 0;
-            const tv = vv + iv;
-            const vvP = tv > 0 ? ((vv / tv) * 100).toFixed(1) : '0';
-            const ivP = tv > 0 ? ((iv / tv) * 100).toFixed(1) : '0';
-
-            const winnerHtml = d.winner ? `
-                <div class="cp-metric-row" style="background:rgba(248, 250, 252, 0.8); margin-top:8px; border-radius:4px; padding:6px 8px;">
-                    <div class="hp-party-swatch" style="background:${d.winner.party_color || '#6b7280'}"></div>
-                    <span class="hp-party-name" style="font-size:11px; margin-left:8px;">${d.winner.party_name}</span>
-                    <span class="hp-party-seats" style="font-size:10px;">${d.winner.seats_won} seats</span>
-                </div>` : '';
-
-            card.innerHTML = `
-                <div class="cp-card-header">
-                    <span class="cp-card-title">${d.district_name}</span>
-                    <span class="cp-card-close" data-idx="${idx}">×</span>
-                </div>
-                <div class="cp-card-body">
-                    <div style="display:flex; gap:8px; margin-bottom:10px;">
-                        <span class="hp-seats-badge">Seats: ${d.total_seats || 0}</span>
-                        <span class="hp-cat-badge">Cat: ${d.district_category || '—'}</span>
+            headHtml += `
+                <th>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>${d.district_name}</span>
+                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; margin-left:10px; opacity:0.5;">×</span>
                     </div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">Reg. People</span> <span class="cp-metric-value">${formatNum(reg)}</span></div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">Total Votes</span> <span class="cp-metric-value">${formatNum(turnout)}</span></div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">ID Coll. %</span> <span class="cp-metric-value">${idcP}%</span></div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">Turnout %</span> <span class="cp-metric-value">${tnP}%</span></div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">Valid %</span> <span class="cp-metric-value">${vvP}%</span></div>
-                    <div class="cp-metric-row"><span class="cp-metric-label">Invalid %</span> <span class="cp-metric-value">${ivP}%</span></div>
-                    ${winnerHtml}
-                </div>
-            `;
+                </th>`;
+        });
+        headHtml += `</tr>`;
+        thead.innerHTML = headHtml;
 
-            card.querySelector('.cp-card-close').onclick = (e) => {
-                L.DomEvent.stopPropagation(e);
+        // Build Data Rows
+        const metrics = [
+            { label: 'Seats', key: 'total_seats', format: v => v || 0 },
+            { label: 'Category', key: 'district_category', format: v => v || '—' },
+            { label: 'Reg. People', key: 'registered_people', format: v => (v || 0).toLocaleString() },
+            { label: 'Total Votes', calc: d => (d.valid_votes || 0) + (d.invalid_votes || 0), format: v => v.toLocaleString() },
+            { label: 'ID Coll. %', calc: d => (d.id_cards_collected / (d.registered_people || 1) * 100), format: v => v.toFixed(1) + '%' },
+            { label: 'Turnout %', key: 'turnout_perc', format: v => (v || 0).toFixed(1) + '%' },
+            { label: 'Valid %', calc: d => (d.valid_votes / ((d.valid_votes + d.invalid_votes) || 1) * 100), format: v => v.toFixed(1) + '%' },
+            { label: 'Invalid %', calc: d => (d.invalid_votes / ((d.valid_votes + d.invalid_votes) || 1) * 100), format: v => v.toFixed(1) + '%' }
+        ];
+
+        metrics.forEach(m => {
+            let rowHtml = `<tr><td class="cp-label-col">${m.label}</td>`;
+            this._pinnedDistricts.forEach(d => {
+                const val = m.calc ? m.calc(d) : d[m.key];
+                rowHtml += `<td class="cp-val-col">${m.format(val)}</td>`;
+            });
+            rowHtml += `</tr>`;
+            tbody.innerHTML += rowHtml;
+        });
+
+        // Winner Row
+        let winnerHtml = `<tr><td class="cp-label-col">Winner</td>`;
+        this._pinnedDistricts.forEach(d => {
+            const w = d.winner;
+            winnerHtml += `<td class="cp-winner-cell">
+                ${w ? `
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}"></div>
+                        <span style="font-weight:700; color:#1e293b; font-size:10px;">${w.party_code || '—'}</span>
+                    </div>
+                ` : '—'}
+            </td>`;
+        });
+        winnerHtml += `</tr>`;
+        tbody.innerHTML += winnerHtml;
+
+        // Attach individual remove handlers
+        this._comparePanel.querySelectorAll('.cp-dist-remove').forEach(el => {
+            el.onclick = (e) => {
+                const idx = parseInt(el.getAttribute('data-idx'));
                 this._pinnedDistricts.splice(idx, 1);
                 this._renderPinnedDistricts();
             };
-
-            this._comparePanel.appendChild(card);
         });
     },
 

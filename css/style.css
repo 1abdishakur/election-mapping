@@ -1661,32 +1661,25 @@ a {
   pointer-events: none; /* User requested non-interactive */
 }
 
-/* Comparison Sidebar (Vertical Stack on Left) */
+/* Unified Comparison Card (Side-by-Side) */
 .comparison-panel {
   position: absolute;
   top: 70px;
   left: 20px;
-  width: 280px;
-  max-height: calc(100% - 180px); /* Leave room for MiniMap */
+  width: auto;
+  max-width: 500px;
   z-index: 1200;
   display: none;
-  flex-direction: column;
-  gap: 15px;
-  overflow-y: auto;
-  pointer-events: auto;
-  padding-bottom: 10px;
-}
-
-.comparison-card {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(15px);
   border: 1px solid #fbbf24;
   border-left: 5px solid #fbbf24;
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-  flex-shrink: 0;
+  flex-direction: column;
+  pointer-events: auto;
 }
 
 .cp-card-header {
@@ -1698,49 +1691,69 @@ a {
   align-items: center;
 }
 .cp-card-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   color: #92400e;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 .cp-card-close {
   cursor: pointer;
   color: #b45309;
   font-size: 18px;
-  line-height: 1;
-}
-.cp-card-close:hover { color: #ef4444; }
-
-.cp-card-body {
-  padding: 12px 14px;
+  font-weight: bold;
 }
 
-.cp-metric-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.03);
+.cp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
 }
-.cp-metric-row:last-child { border-bottom: none; }
 
-.cp-metric-label {
-  font-size: 10px;
-  font-weight: 600;
+.cp-table th {
+  padding: 8px 12px;
+  text-align: left;
+  background: #f8fafc;
   color: #64748b;
-  text-transform: uppercase;
-}
-.cp-metric-value {
-  font-size: 12px;
   font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cp-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cp-table tr:last-child td { border-bottom: none; }
+
+.cp-label-col {
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  font-size: 9px;
+  width: 1%; /* Shrink to fit content */
+}
+
+.cp-val-col {
+  font-weight: 800 !important;
+  text-align: right;
+  min-width: 80px;
+}
+
+.cp-winner-cell {
+  padding: 8px 12px !important;
+  background: rgba(248, 250, 252, 0.5);
 }
 
 @keyframes slideInLeft {
   from { opacity: 0; transform: translateX(-30px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
 
 
 

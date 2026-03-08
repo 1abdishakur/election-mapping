@@ -1420,9 +1420,9 @@ a {
 }
 
 .map-mode-select {
-  height: 36px;
-  padding: 0 30px 0 12px;
-  font-size: 13px;
+  padding: 10px 32px 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
   font-weight: 600;
   border: 1px solid var(--c-border);
   border-radius: var(--radius);

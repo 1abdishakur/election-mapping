@@ -14,6 +14,8 @@ export const MapModule = {
     _comparePanel: null,
     _tickerControl: null,
     _miniMap: null,
+    _hideTimer: null,
+    _panelLocked: false,
 
     // ── Tile Layers ──────────────────────────────────────────
     TILES: {
@@ -60,9 +62,14 @@ export const MapModule = {
         document.getElementById(containerId).appendChild(this._hoverPanel);
 
         // Interaction fix: Don't hide if mouse is in the panel
-        this._panelLocked = false;
-        this._hoverPanel.onmouseenter = () => { this._panelLocked = true; };
-        this._hoverPanel.onmouseleave = () => { this._panelLocked = false; this._hideHoverPanel(); };
+        this._hoverPanel.onmouseenter = () => { 
+            if (this._hideTimer) clearTimeout(this._hideTimer);
+            this._panelLocked = true; 
+        };
+        this._hoverPanel.onmouseleave = () => { 
+            this._panelLocked = false; 
+            this._hideHoverPanel(); 
+        };
 
         // Create the Pinned Comparison Panel
         this._comparePanel = document.createElement('div');
@@ -451,9 +458,9 @@ export const MapModule = {
         const py = e.originalEvent.clientY - rect.top;
 
         // Panel dimensions
-        const pw = this._hoverPanel.offsetWidth || 240;
+        const pw = this._hoverPanel.offsetWidth || 300;
         const ph = this._hoverPanel.offsetHeight || 300;
-        const gap = 14;
+        const gap = 0; // ZERO gap to ensure seamless transition to the panel
 
         // X Positioning (Left vs Right)
         let left = px + gap;
@@ -479,7 +486,14 @@ export const MapModule = {
 
     _hideHoverPanel() {
         if (this._panelLocked) return;
-        if (this._hoverPanel) this._hoverPanel.style.display = 'none';
+        if (this._hideTimer) clearTimeout(this._hideTimer);
+        
+        // Give user 300ms to move mouse from polygon to the panel
+        this._hideTimer = setTimeout(() => {
+            if (!this._panelLocked && this._hoverPanel) {
+                this._hoverPanel.style.display = 'none';
+            }
+        }, 300);
     },
 
     // ── Polygon Labels (divIcon sized to polygon pixels — zero overflow possible)

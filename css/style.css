@@ -1717,8 +1717,8 @@ a {
   top: 70px;
   left: 20px;
   width: auto;
-  min-width: 480px;
-  max-width: 900px;
+  min-width: 320px;
+  max-width: 950px;
   z-index: 1200;
   display: none;
   background: var(--c-surface);
@@ -1767,7 +1767,7 @@ a {
 }
 
 .cp-table th {
-  padding: 8px 12px;
+  padding: 8px 10px;
   text-align: left;
   background: var(--c-surface-2);
   color: var(--c-text-2);
@@ -1779,7 +1779,7 @@ a {
 .cp-table th:last-child { border-right: none; }
 
 .cp-table td {
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--c-border);
   border-right: 1px solid var(--c-border);
   color: var(--c-text);
@@ -1801,8 +1801,7 @@ a {
 
 .cp-val-col {
   font-weight: 800 !important;
-  text-align: center;
-  min-width: 80px;
+  text-align: left;
 }
 
 

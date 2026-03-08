@@ -479,14 +479,14 @@ export const MapModule = {
         let winnerHtml = `<tr><td class="cp-label-col" style="vertical-align:top; padding-top:12px;">Winner</td>`;
         this._pinnedDistricts.forEach(d => {
             const w = d.winner;
-            winnerHtml += `<td class="cp-winner-cell" style="vertical-align:top;">
+            winnerHtml += `<td class="cp-val-col cp-winner-cell" style="vertical-align:top;">
                 ${w ? `
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0;"></div>
-                            <span style="font-weight:800; color:var(--c-text); font-size:10px; white-space:normal; line-height:1.1; max-width:120px;">${w.party_name || '—'}</span>
+                    <div style="display:flex; flex-direction:column; gap:4px; text-align:left;">
+                        <div style="display:flex; align-items:flex-start; gap:6px;">
+                            <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0; margin-top:3px;"></div>
+                            <span style="font-weight:800; color:var(--c-text); font-size:10px; white-space:normal; line-height:1.2; max-width:140px;">${w.party_name || '—'}</span>
                         </div>
-                        <div style="font-weight:700; color:var(--c-warn); font-size:9px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
+                        <div style="font-weight:700; color:var(--c-warn); font-size:9.5px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
                     </div>
                 ` : '—'}
             </td>`;

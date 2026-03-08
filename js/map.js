@@ -251,11 +251,12 @@ export const MapModule = {
 
         this._hoverPanel.innerHTML = `
             <div class="hp-header">
-                <div class="hp-header-top">
-                    <div class="hp-name">${d.district_name || '—'}</div>
-                    <div class="hp-seats-badge">Seats: ${d.total_seats || 0}</div>
+                <div class="hp-row-top">
+                    <span class="hp-name">${d.district_name || '—'}</span>
+                    <span class="hp-state-info">${(d.state?.state_name) || ''}</span>
+                    <span class="hp-seats-badge">Seats: ${d.total_seats || 0}</span>
+                    <span class="hp-cat-badge">Cat: ${d.district_category || '—'}</span>
                 </div>
-                <div class="hp-state">${(d.state?.state_name) || ''} · ${d.district_category || ''}</div>
             </div>
             <div class="hp-body">
                 <div class="hp-row-full">

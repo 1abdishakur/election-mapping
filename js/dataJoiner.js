@@ -233,7 +233,9 @@ export const DataJoiner = {
     },
 
     /**
-     * Convert strings to numbers for known numeric    normalize(tables) {
+     * Convert strings to numbers for known numeric fields
+     */
+    normalize(tables) {
         const numericFields = [
             'total_seats', 'total_cadidates', 'registered_people', 'id_cards_collected',
             'voters_turnout', 'valid_votes', 'invalid_votes', 'cadidates_submited',

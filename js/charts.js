@@ -19,17 +19,17 @@ export const ChartsModule = {
 
     updateTheme(theme) {
         const isDark = theme === 'dark';
-        const textColor = isDark ? '#f8fafc' : '#1e293b';
-        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        this.textColor = isDark ? '#f1f5f9' : '#1e293b';
+        this.mutedColor = isDark ? '#94a3b8' : '#64748b';
+        this.gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-        Chart.defaults.color = textColor;
+        Chart.defaults.color = this.textColor;
         
-        // Update existing charts axis colors
         Object.values(this.charts).forEach(chart => {
             if (chart.options.scales) {
                 Object.values(chart.options.scales).forEach(scale => {
-                    if (scale.grid) scale.grid.color = gridColor;
-                    if (scale.ticks) scale.ticks.color = textColor;
+                    if (scale.grid) scale.grid.color = this.gridColor;
+                    if (scale.ticks) scale.ticks.color = this.textColor;
                 });
                 chart.update('none');
             }
@@ -59,7 +59,7 @@ export const ChartsModule = {
         this._setBar(this.charts.seatsSum, arr.map(x => x.name), arr.map(x => x.seats), arr.map(x => x.color), arr.map(x => x.sPct));
         this._setBar(this.charts.votesSum, arr.map(x => x.name), arr.map(x => x.votes), arr.map(x => x.color), arr.map(x => x.vPct));
 
-        // 4: Gender Representation - Now horizontal and grouped
+        // 4: Gender Representation
         const g = summary.genderStats || {};
         const totalCand = (g.male || 0) + (g.female || 0) || 1;
         const totalWin = (g.maleWinners || 0) + (g.femaleWinners || 0) || 1;
@@ -69,23 +69,25 @@ export const ChartsModule = {
             { 
                 label: 'Candidates', 
                 data: [g.male || 0, g.female || 0], 
-                backgroundColor: '#94a3b8', 
+                backgroundColor: '#64748b', 
+                borderRadius: 5,
                 pcts: [(g.male || 0)/totalCand*100, (g.female || 0)/totalCand*100] 
             },
             { 
                 label: 'Winners', 
                 data: [g.maleWinners || 0, g.femaleWinners || 0], 
                 backgroundColor: '#10b981',
+                borderRadius: 5,
                 pcts: [(g.maleWinners||0)/totalWin*100, (g.femaleWinners||0)/totalWin*100] 
             }
         ];
         this.charts.genderRep.update('none');
 
-        // 5: Efficiency (Votes % vs Seats %) - Better comparison
+        // 5: Efficiency (Votes % vs Seats %)
         this.charts.efficiency.data.labels = arr.map(x => x.name);
         this.charts.efficiency.data.datasets = [
-            { label: 'Vote Share %', data: arr.map(x => x.vPct), backgroundColor: '#3b82f6' },
-            { label: 'Seat Share %', data: arr.map(x => x.sPct), backgroundColor: '#f59e0b' }
+            { label: 'Vote Share %', data: arr.map(x => x.vPct), backgroundColor: '#6366f1', borderRadius: 5 },
+            { label: 'Seat Share %', data: arr.map(x => x.sPct), backgroundColor: '#f59e0b', borderRadius: 5 }
         ];
         this.charts.efficiency.update('none');
     },
@@ -95,19 +97,13 @@ export const ChartsModule = {
         chart.data.datasets = [{
             data,
             backgroundColor: colors,
-            borderRadius: 4,
+            borderRadius: 6,
             borderSkipped: false,
-            barThickness: 24,
-            categoryPercentage: 0.9,
-            barPercentage: 0.9,
-            pcts: pcts // Custom metadata for plugin
+            barThickness: 18,
+            categoryPercentage: 0.8,
+            barPercentage: 1,
+            pcts: pcts 
         }];
-        chart.update('none');
-    },
-
-    _setDonut(chart, labels, data, colors) {
-        chart.data.labels = labels;
-        chart.data.datasets = [{ data, backgroundColor: colors, borderWidth: 0 }];
         chart.update('none');
     },
 
@@ -121,14 +117,15 @@ export const ChartsModule = {
                 maintainAspectRatio: false,
                 animation: false,
                 layout: {
-                    padding: { left: 0, right: 100, top: 20, bottom: 5 }
+                    padding: { left: 0, right: 80, top: 22, bottom: 2 }
                 },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        padding: 10,
-                        cornerRadius: 8
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleFont: { weight: '800' }
                     }
                 },
                 scales: {
@@ -152,19 +149,19 @@ export const ChartsModule = {
                         const pct = data.datasets[0].pcts ? data.datasets[0].pcts[i] : null;
                         const rect = element.getProps(['x', 'y', 'base', 'width', 'height'], true);
                         
-                        // Party Name (Tighter offset)
-                        ctx.font = '700 11px Inter';
-                        ctx.fillStyle = '#334155';
+                        // Label Above Bar
+                        ctx.font = '800 10.5px Inter';
+                        ctx.fillStyle = this.textColor;
                         ctx.textAlign = 'left';
-                        ctx.fillText(label, 0, rect.y - 18);
+                        ctx.fillText(label, 0, rect.y - 12);
 
-                        // Value + Pct (Aligned relative to thicker bar)
+                        // Value After Bar
                         ctx.font = '700 10px Inter';
-                        ctx.fillStyle = '#64748b';
+                        ctx.fillStyle = this.mutedColor;
                         ctx.textAlign = 'left';
                         let txt = val.toLocaleString();
                         if (pct !== null) txt += ` (${pct.toFixed(1)}%)`;
-                        ctx.fillText(txt, rect.x + 8, rect.y + 4);
+                        ctx.fillText(txt, rect.x + 10, rect.y + 3.5);
                     });
                     ctx.restore();
                 }
@@ -182,17 +179,17 @@ export const ChartsModule = {
                 maintainAspectRatio: false,
                 animation: false,
                 layout: {
-                    padding: { left: 0, right: 100, top: 25, bottom: 5 }
+                    padding: { left: 0, right: 90, top: 25, bottom: 5 }
                 },
                 plugins: {
                     legend: {
                         display: true,
                         position: 'bottom',
-                        labels: { boxWidth: 10, padding: 15, font: { size: 10, weight: '700' } }
+                        labels: { boxWidth: 8, padding: 20, font: { size: 10, weight: '700' }, color: () => this.textColor }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        padding: 10,
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
                         cornerRadius: 8
                     }
                 },
@@ -212,13 +209,13 @@ export const ChartsModule = {
                         if (!element) return;
                         const rect = element.getProps(['y'], true);
                         
-                        // Group Title
-                        ctx.font = '700 11px Inter';
-                        ctx.fillStyle = '#1e293b';
+                        // Group Label
+                        ctx.font = '800 10.5px Inter';
+                        ctx.fillStyle = this.textColor;
                         ctx.textAlign = 'left';
-                        ctx.fillText(label, 0, rect.y - 32);
+                        ctx.fillText(label, 0, rect.y - 28);
 
-                        // Values for each bar in group
+                        // Sub-bar Values
                         data.datasets.forEach((dataset, di) => {
                             const dMeta = chart.getDatasetMeta(di);
                             const dEl = dMeta.data[i];
@@ -227,11 +224,11 @@ export const ChartsModule = {
                             const val = dataset.data[i];
                             const pct = dataset.pcts ? dataset.pcts[i] : (id === 'efficiencyChart' ? val : null);
 
-                            ctx.font = '600 10px Inter';
-                            ctx.fillStyle = '#64748b';
+                            ctx.font = '700 9.5px Inter';
+                            ctx.fillStyle = this.mutedColor;
                             let txt = id === 'efficiencyChart' ? `${pct.toFixed(1)}%` : val.toLocaleString();
                             if (id !== 'efficiencyChart' && pct !== null) txt += ` (${pct.toFixed(1)}%)`;
-                            ctx.fillText(txt, dRect.x + 10, dRect.y + 4);
+                            ctx.fillText(txt, dRect.x + 10, dRect.y + 3.5);
                         });
                     });
                     ctx.restore();

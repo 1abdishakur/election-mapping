@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=138';
-import { DataJoiner } from './dataJoiner.js?v=138';
-import { MapModule } from './map.js?v=138';
-import { ChartsModule } from './charts.js?v=138';
-import { UIController } from './ui.js?v=138';
+import { DataLoader } from './dataLoader.js?v=139';
+import { DataJoiner } from './dataJoiner.js?v=139';
+import { MapModule } from './map.js?v=139';
+import { ChartsModule } from './charts.js?v=139';
+import { UIController } from './ui.js?v=139';
 
 /** Central Application State */
 const AppState = {

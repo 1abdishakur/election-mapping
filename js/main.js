@@ -214,6 +214,7 @@ class ElectionDashboard {
 
         UIController.populateDistrictFilter(this.masterData);
         MapModule.filterByState('all', this.geoJSON);
+        MapModule.selectedDistrictCode = null;
         MapModule.resetStyles();
         MapModule.setMode('default');
 
@@ -243,6 +244,7 @@ class ElectionDashboard {
 
         this.updatePartyList(summary, true);
         MapModule.showDistrictCenters(district.dist_code || district.district_code);
+        MapModule.showDistrictFocus(district.dist_code || district.district_code);
 
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';

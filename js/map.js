@@ -10,6 +10,7 @@ export const MapModule = {
     currentMode: 'default',
     onDistrictClick: null,
     _activePartyCode: null,   // tracks the currently highlighted party
+    selectedDistrictCode: null, // tracks the currently focused district
 
     // ── Tile Layers ──────────────────────────────────────────
     TILES: {
@@ -465,11 +466,13 @@ export const MapModule = {
     styleFeature(feature) {
         const d = feature.properties.data || {};
         const color = this.getColor(d);
+        const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
+        
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: '#666666',
-            weight: 1,
+            color: isSelected ? '#fbbf24' : '#666666',
+            weight: isSelected ? 3 : 1,
             dashArray: null
         };
     },
@@ -513,7 +516,7 @@ export const MapModule = {
         const d = feature.properties.data;
         layer.on({
             mouseover: e => {
-                e.target.setStyle({ weight: 3, color: '#000000', fillOpacity: 0.6 });
+                e.target.setStyle({ weight: 3, color: '#fbbf24', fillOpacity: 0.6 });
                 if (d) this._showHoverPanel(d, e);
             },
             mousemove: e => {
@@ -621,6 +624,26 @@ export const MapModule = {
         }
     },
 
+    showDistrictFocus(districtCode) {
+        this.selectedDistrictCode = districtCode;
+        if (!this.geoJSONLayer) return;
+
+        let targetLayer = null;
+        this.geoJSONLayer.eachLayer(layer => {
+            const d = layer.feature?.properties?.data;
+            if (d && (d.dist_code === districtCode || d.district_code === districtCode)) {
+                targetLayer = layer;
+            }
+        });
+
+        // Reset styles for all, then target will get its yellow border via styleFeature
+        this.geoJSONLayer.setStyle(f => this.styleFeature(f));
+
+        if (targetLayer) {
+            this.map.fitBounds(targetLayer.getBounds(), { padding: [100, 100], maxZoom: 12 });
+        }
+    },
+
     // ── Mode / Filter ─────────────────────────────────────────
     setMode(mode) {
         this.currentMode = mode;
@@ -636,6 +659,7 @@ export const MapModule = {
     },
 
     filterByState(stateCode, geoJSON) {
+        this.selectedDistrictCode = null; // Clear focus on state change
         const filtered = stateCode === 'all' ? geoJSON : {
             ...geoJSON,
             features: geoJSON.features.filter(f => f.properties.data?.state_code === stateCode)

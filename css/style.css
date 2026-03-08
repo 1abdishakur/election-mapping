@@ -1413,6 +1413,52 @@ a {
   letter-spacing: 0.02em;
 }
 
+/* ── Map Mode Dropdown ─────────────────────────────────── */
+.leaflet-control-custom-mode {
+  margin-top: 10px !important;
+  margin-right: 10px !important;
+}
+
+.map-mode-select {
+  padding: 8px 30px 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%20%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.map-mode-select:hover {
+  border-color: var(--c-primary);
+}
+
+.map-mode-select:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.map-mode-select option {
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .map-mode-select {
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%20%22%20fill%3D%22none%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+}
+
 /* ── Leaflet Measure Cleanup ────────────────────────── */
 .leaflet-control-measure {
   background: none !important;

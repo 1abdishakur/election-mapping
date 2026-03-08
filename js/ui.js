@@ -79,6 +79,38 @@ export const UIController = {
                 cb.classList.remove('open');
             }
         });
+
+        this.initTheme();
+    },
+
+    initTheme() {
+        const btn = document.getElementById('theme-toggle-btn');
+        if (!btn) return;
+        const sunIcon = btn.querySelector('.sun-icon');
+        const moonIcon = btn.querySelector('.moon-icon');
+        
+        const setTheme = (theme, persist = true) => {
+            document.documentElement.setAttribute('data-theme', theme);
+            if (persist) localStorage.setItem('dashboard-theme', theme);
+            
+            if (theme === 'dark') {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            } else {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            }
+            // Dispatch to other modules
+            window.dispatchEvent(new CustomEvent('themeChanged', { detail: theme }));
+        };
+
+        const saved = localStorage.getItem('dashboard-theme') || 'light';
+        setTheme(saved, false);
+
+        btn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        });
     },
 
     populateStateFilter(states) {

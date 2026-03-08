@@ -77,11 +77,24 @@ export const MapModule = {
         this._comparePanel.className = 'comparison-panel';
         document.getElementById(containerId).appendChild(this._comparePanel);
 
-        // Default base tile
-        this.TILES['Carto Light'].addTo(this.map);
+        // Theme Sync
+        window.addEventListener('themeChanged', e => {
+            const theme = e.detail;
+            if (theme === 'dark') {
+                this.TILES['Carto Dark'].addTo(this.map);
+                this.map.removeLayer(this.TILES['Carto Light']);
+            } else {
+                this.TILES['Carto Light'].addTo(this.map);
+                this.map.removeLayer(this.TILES['Carto Dark']);
+            }
+        });
+
+        // Default base tile (Check theme first)
+        const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        this.TILES[activeTheme === 'dark' ? 'Carto Dark' : 'Carto Light'].addTo(this.map);
 
         // Layer Control
-        L.control.layers(this.TILES, {}, { position: 'topright', collapsed: true }).addTo(this.map);
+        this._layerControl = L.control.layers(this.TILES, {}, { position: 'topright', collapsed: true }).addTo(this.map);
 
         // Scale bar
         L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(this.map);

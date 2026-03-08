@@ -1,20 +1,39 @@
-import { CONFIG } from './config.js?v=3';
-
-const DARK = '#1a202c';
-const GRID = 'rgba(0,0,0,.06)';
-
 export const ChartsModule = {
     charts: {},
 
     init() {
         Chart.defaults.font.family = 'Inter, sans-serif';
         Chart.defaults.font.size = 11;
-        Chart.defaults.color = DARK;
+        
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        this.updateTheme(currentTheme);
 
         this.charts.seatsSum = this._bar('seatsWonChart');
         this.charts.votesSum = this._bar('partyVotesChart');
         this.charts.genderRep = this._multiBar('genderRepChart');
         this.charts.efficiency = this._multiBar('efficiencyChart');
+
+        // Listen for global theme changes
+        window.addEventListener('themeChanged', e => this.updateTheme(e.detail));
+    },
+
+    updateTheme(theme) {
+        const isDark = theme === 'dark';
+        const textColor = isDark ? '#f8fafc' : '#1e293b';
+        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+        Chart.defaults.color = textColor;
+        
+        // Update existing charts axis colors
+        Object.values(this.charts).forEach(chart => {
+            if (chart.options.scales) {
+                Object.values(chart.options.scales).forEach(scale => {
+                    if (scale.grid) scale.grid.color = gridColor;
+                    if (scale.ticks) scale.ticks.color = textColor;
+                });
+                chart.update('none');
+            }
+        });
     },
 
     update(summary, parties) {

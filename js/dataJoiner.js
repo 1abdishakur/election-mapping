@@ -21,9 +21,11 @@ export const DataJoiner = {
         // Ensure every party has a globally unique color if none is provided
         const generateDistinctColor = (index) => {
             const palette = [
-                '#2563eb', '#16a34a', '#dc2626', '#eab308', '#9333ea',
-                '#0d9488', '#ea580c', '#db2777', '#059669', '#4f46e5',
-                '#ca8a04', '#b91c1c', '#1d4ed8', '#4d7c0f', '#a21caf'
+                '#E6194B', '#3CB44B', '#FFE119', '#4363D8', '#F58231', 
+                '#911EB4', '#42D4F4', '#F032E6', '#BFEF45', '#FABED4', 
+                '#469990', '#DCBEFF', '#9A6324', '#800000', '#AAFFC3', 
+                '#808000', '#FFD8B1', '#000075', '#A9A9A9', '#FF8C00', 
+                '#1C6926', '#D05F39', '#8D397C'
             ];
             if (index < palette.length) return palette[index];
             // Algorithmic distinct hue fallback using golden ratio

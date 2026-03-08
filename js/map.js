@@ -184,7 +184,7 @@ export const MapModule = {
             if (!d) return;
             if ((d.turnout_perc || 0) > maxVals.turnout) maxVals.turnout = d.turnout_perc;
             if ((d.registered_people || 0) > maxVals.registered) maxVals.registered = d.registered_people;
-            if ((d.id_cards_collected || 0) > maxVals.id_collected) maxVals.id_collected = d.id_cards_collected;
+            if ((d.id_collected_perc || 0) > maxVals.id_collected) maxVals.id_collected = d.id_collected_perc;
             if ((d.valid_votes || 0) > maxVals.votes) maxVals.votes = d.valid_votes;
             if ((d.invalid_votes || 0) > maxVals.invalid) maxVals.invalid = d.invalid_votes;
         });
@@ -408,8 +408,8 @@ export const MapModule = {
                             break;
                         case 'id_collected': {
                             const idc = d.id_cards_collected || 0;
-                            const reg = d.registered_people || 1;
-                            statText = `${formatNum(idc)} (${reg > 0 ? (idc / reg * 100).toFixed(1) : '0'}%)`;
+                            const icp = d.id_collected_perc || 0;
+                            statText = `${formatNum(idc)} (${icp.toFixed(1)}%)`;
                             break;
                         }
                         case 'turnout':
@@ -489,7 +489,7 @@ export const MapModule = {
             case 'registered':
                 return this.scale(d.registered_people, this.modeRanges.registered || [0, 20000, 50000, 100000, 250000], ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534']);
             case 'id_collected':
-                return this.scale(d.id_cards_collected, this.modeRanges.id_collected || [0, 10000, 30000, 70000, 150000], ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a']);
+                return this.scale(d.id_collected_perc, this.modeRanges.id_collected || [0, 20, 40, 60, 80], ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a']);
             case 'votes':
                 return this.scale(d.valid_votes, this.modeRanges.votes || [0, 5000, 25000, 75000, 200000], ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534']);
             case 'invalid':
@@ -680,7 +680,7 @@ export const MapModule = {
             const configs = {
                 turnout: { label: 'Voter Turnout', stops: self.modeRanges?.turnout || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '%' },
                 registered: { label: 'Registered Voters', stops: self.modeRanges?.registered || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
-                id_collected: { label: 'ID Cards Collected', stops: self.modeRanges?.id_collected || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '' },
+                id_collected: { label: 'ID Cards Collected', stops: self.modeRanges?.id_collected || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '%' },
                 votes: { label: 'Valid Votes', stops: self.modeRanges?.votes || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
                 invalid: { label: 'Invalid Votes', stops: self.modeRanges?.invalid || [0, 20, 40, 60, 80], colors: ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444'], suffix: '' },
                 winner: { label: 'Winner', stops: [], colors: [] }

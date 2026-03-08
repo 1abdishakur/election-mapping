@@ -88,12 +88,19 @@ export const UIController = {
         const btn = document.getElementById('fullscreen-btn');
         if (!btn) return;
 
-        btn.addEventListener('click', () => {
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+        function toggleFullScreen() {
+            const isFullscreen = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            
             if (!isFullscreen) {
                 const elem = document.documentElement;
                 if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => console.warn(err));
+                    elem.requestFullscreen().catch(err => {
+                        console.warn('Fullscreen err:', err);
+                        // Fallback to body if documentElement fails
+                        document.body.requestFullscreen().catch(e => console.warn(e));
+                    });
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
                 } else if (elem.webkitRequestFullscreen) { /* Safari */
                     elem.webkitRequestFullscreen();
                 } else if (elem.msRequestFullscreen) { /* IE11 */
@@ -102,16 +109,20 @@ export const UIController = {
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
                 } else if (document.webkitExitFullscreen) { /* Safari */
                     document.webkitExitFullscreen();
                 } else if (document.msExitFullscreen) { /* IE11 */
                     document.msExitFullscreen();
                 }
             }
-        });
+        }
+
+        btn.addEventListener('click', toggleFullScreen);
         
         const updateIcon = () => {
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            const isFullscreen = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
             if (isFullscreen) {
                 btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
@@ -121,9 +132,11 @@ export const UIController = {
                     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                 </svg>`;
             }
+            // Trigger a resize event to ensure Leaflet map and Chart.js adapt to the new full window
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         };
 
-        ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => 
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => 
             document.addEventListener(evt, updateIcon)
         );
     },

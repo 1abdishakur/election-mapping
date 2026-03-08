@@ -9,8 +9,11 @@ export const MapModule = {
     legendControl: null,
     currentMode: 'default',
     onDistrictClick: null,
-    _activePartyCode: null,   // tracks the currently highlighted party
-    selectedDistrictCode: null, // tracks the currently focused district
+    _activePartyCode: null,
+    selectedDistrictCode: null,
+    _comparePanel: null,
+    _tickerControl: null,
+    _miniMap: null,
 
     // ── Tile Layers ──────────────────────────────────────────
     TILES: {
@@ -56,6 +59,11 @@ export const MapModule = {
         this._hoverPanel.style.display = 'none';
         document.getElementById(containerId).appendChild(this._hoverPanel);
 
+        // Create the Pinned Comparison Panel
+        this._comparePanel = document.createElement('div');
+        this._comparePanel.className = 'comparison-panel';
+        document.getElementById(containerId).appendChild(this._comparePanel);
+
         // Default base tile
         this.TILES['Carto Light'].addTo(this.map);
 
@@ -80,6 +88,7 @@ export const MapModule = {
         // Draw districts
         this.renderDistricts(geoJSON);
         this.buildCentersLayer(geoJSON);
+        this.addMiniMap(geoJSON);
 
         // Add Toggle Controls to Map
         this.addToggleControl();
@@ -91,6 +100,11 @@ export const MapModule = {
 
         // Labels need the map to have a center+zoom, so call after fitBounds
         this.updateLabels();
+
+        if (geoJSON && geoJSON.features) {
+            const allD = geoJSON.features.map(f => f.properties.data).filter(x => x);
+            this.createTicker(allD);
+        }
 
         return this.map;
     },
@@ -203,6 +217,69 @@ export const MapModule = {
         this.modeRanges.invalid = getStops(maxVals.invalid);
     },
 
+    addMiniMap(geoJSON) {
+        if (this._miniMap) return;
+        const self = this;
+        const MiniMapControl = L.Control.extend({
+            options: { position: 'bottomleft' },
+            onAdd: function() {
+                const container = L.DomUtil.create('div', 'leaflet-control-minimap');
+                container.style.width = '120px';
+                container.style.height = '120px';
+                
+                setTimeout(() => {
+                    const mm = L.map(container, {
+                        attributionControl: false, zoomControl: false, dragging: false,
+                        touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false
+                    });
+                    self._miniMap = mm;
+                    
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png').addTo(mm);
+                    L.geoJSON(geoJSON, {
+                        style: { color: '#94a3b8', weight: 0.5, fillOpacity: 0.1, fillColor: '#cbd5e1' }
+                    }).addTo(mm);
+
+                    const bounds = L.geoJSON(geoJSON).getBounds();
+                    mm.fitBounds(bounds);
+
+                    const viewRect = L.rectangle(self.map.getBounds(), { color: "#ef4444", weight: 1.5, fillOpacity: 0, interactive: false }).addTo(mm);
+                    self.map.on('move', () => viewRect.setBounds(self.map.getBounds()));
+                }, 200);
+                return container;
+            }
+        });
+        new MiniMapControl().addTo(this.map);
+    },
+
+    createTicker(districts) {
+        if (this._tickerControl) this._tickerControl.remove();
+        const TickerControl = L.Control.extend({
+            options: { position: 'bottomleft' },
+            onAdd: function() {
+                const container = L.DomUtil.create('div', 'map-ticker');
+                container.innerHTML = `<div class="ticker-label">Live Updates</div><div class="ticker-content-wrapper"><div class="ticker-content"></div></div>`;
+                const content = container.querySelector('.ticker-content');
+                
+                const highlights = [];
+                // Top ID Collection
+                districts.sort((a,b) => b.id_collected_perc - a.id_collected_perc).slice(0, 3).forEach(d => {
+                    highlights.push(`<div class="ticker-item"><span class="ticker-bullet">★</span> ${d.district_name}: ${d.id_collected_perc.toFixed(1)}% ID Collection</div>`);
+                });
+                // Top Turnout
+                districts.sort((a,b) => b.turnout_perc - a.turnout_perc).slice(0, 3).forEach(d => {
+                    highlights.push(`<div class="ticker-item"><span class="ticker-bullet">⚡</span> ${d.district_name}: ${d.turnout_perc.toFixed(1)}% Turnout</div>`);
+                });
+                // Centers active
+                const totalCenters = districts.reduce((acc, d) => acc + (d.centers?.length || 0), 0);
+                highlights.push(`<div class="ticker-item"><span class="ticker-bullet">📍</span> National: ${totalCenters} Polling Centers Active</div>`);
+
+                content.innerHTML = highlights.join('') + highlights.join(''); // Loop
+                return container;
+            }
+        });
+        this._tickerControl = new TickerControl().addTo(this.map);
+    },
+
     // ── Hover Panel ────────────────────────────────────────────
     _showHoverPanel(d, mouseEvent) {
         if (!this._hoverPanel) return;
@@ -313,10 +390,50 @@ export const MapModule = {
                 
                 ${rankHtml}
                 ${winnerHtml}
+                <button class="hp-compare-btn" id="hp-compare-btn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+                    Compare District
+                </button>
             </div>`;
+
+        const btn = this._hoverPanel.querySelector('#hp-compare-btn');
+        if (btn) {
+            L.DomEvent.on(btn, 'click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this._pinDistrict(d);
+            });
+        }
 
         this._hoverPanel.style.display = 'block';
         this._moveHoverPanel(mouseEvent);
+    },
+
+    _pinDistrict(d) {
+        if (!this._comparePanel) return;
+        const formatNum = (num) => (num || 0).toLocaleString();
+        
+        this._comparePanel.innerHTML = `
+            <div class="cp-pin-header">
+                <span class="cp-pin-title">Pinned: ${d.district_name}</span>
+                <span class="cp-close" id="cp-close">×</span>
+            </div>
+            <div class="hp-body" style="padding: 10px;">
+                <div class="hp-grid">
+                    <div class="hp-col"><div class="hp-label">Reg.</div><strong>${formatNum(d.registered_people)}</strong></div>
+                    <div class="hp-col"><div class="hp-label">IDs</div><strong>${d.id_collected_perc.toFixed(1)}%</strong></div>
+                </div>
+                <div class="hp-grid mt-1">
+                    <div class="hp-col"><div class="hp-label">Turnout</div><strong>${d.turnout_perc.toFixed(1)}%</strong></div>
+                    <div class="hp-col"><div class="hp-label">Valid</div><strong>${((d.valid_votes/(d.valid_votes+d.invalid_votes))*100 || 0).toFixed(1)}%</strong></div>
+                </div>
+                ${d.winner ? `<div class="hp-divider"></div><div class="hp-winner-content">
+                    <div class="hp-party-swatch" style="background:${d.winner.party_color || '#64748b'}"></div>
+                    <span class="hp-party-name">${d.winner.party_name}</span>
+                </div>` : ''}
+            </div>
+        `;
+        this._comparePanel.style.display = 'block';
+        this._comparePanel.querySelector('#cp-close').onclick = () => this._comparePanel.style.display = 'none';
     },
 
     _moveHoverPanel(e) {
@@ -711,6 +828,33 @@ export const MapModule = {
             };
             const cfg = configs[self.currentMode] || configs.turnout;
             div.innerHTML = `<strong>${cfg.label}</strong>`;
+
+            // Calculate Histogram Data
+            if (self.currentMode !== 'winner' && self.geoJSONLayer) {
+                const counts = new Array(cfg.stops.length).fill(0);
+                self.geoJSONLayer.eachLayer(layer => {
+                    const data = layer.feature?.properties?.data || {};
+                    let val = 0;
+                    switch(self.currentMode) {
+                        case 'turnout': val = data.turnout_perc; break;
+                        case 'id_collected': val = data.id_collected_perc; break;
+                        case 'registered': val = data.registered_people; break;
+                        case 'votes': val = data.valid_votes; break;
+                        case 'invalid': val = data.invalid_perc; break;
+                    }
+                    for (let i = cfg.stops.length - 1; i >= 0; i--) {
+                        if (val >= cfg.stops[i]) { counts[i]++; break; }
+                    }
+                });
+                const maxCount = Math.max(...counts) || 1;
+                let histoHtml = '<div class="legend-histo">';
+                counts.forEach((c, i) => {
+                    const hP = (c / maxCount) * 100;
+                    histoHtml += `<div class="histo-bar" style="height:${hP}%; background:${cfg.colors[i]}" data-count="${c} districts"></div>`;
+                });
+                histoHtml += '</div>';
+                div.innerHTML += histoHtml;
+            }
 
             if (self.currentMode === 'winner') {
                 const winners = new Map();

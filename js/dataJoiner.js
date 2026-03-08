@@ -336,11 +336,13 @@ export const DataJoiner = {
         });
 
         let pollingCentersCount = 0;
-        if (fullTables && fullTables.centers) {
-            pollingCentersCount = fullTables.centers.filter(c =>
-                String(c.is_polling_center).trim().toUpperCase() === 'TRUE'
-            ).length;
-        }
+        districtMaster.forEach(d => {
+            if (d.centers) {
+                pollingCentersCount += d.centers.filter(c =>
+                    String(c.is_polling_center).trim().toUpperCase() === 'TRUE'
+                ).length;
+            }
+        });
 
         const turnoutVotes = totalVotes + totalInvalid;
         const idCollectedPct = totalRegistered > 0 ? (totalIdCards / totalRegistered) * 100 : 0;

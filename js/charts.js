@@ -76,11 +76,11 @@ export const ChartsModule = {
         chart.data.datasets = [{
             data,
             backgroundColor: colors,
-            borderRadius: 6,
+            borderRadius: 4,
             borderSkipped: false,
-            barThickness: 8,
-            categoryPercentage: 0.7,
-            barPercentage: 0.7,
+            barThickness: 24,
+            categoryPercentage: 0.9,
+            barPercentage: 0.9,
             pcts: pcts // Custom metadata for plugin
         }];
         chart.update('none');
@@ -102,7 +102,7 @@ export const ChartsModule = {
                 maintainAspectRatio: false,
                 animation: false,
                 layout: {
-                    padding: { left: 0, right: 90, top: 35, bottom: 10 }
+                    padding: { left: 0, right: 100, top: 20, bottom: 5 }
                 },
                 plugins: {
                     legend: { display: false },
@@ -133,19 +133,19 @@ export const ChartsModule = {
                         const pct = data.datasets[0].pcts ? data.datasets[0].pcts[i] : null;
                         const rect = element.getProps(['x', 'y', 'base', 'width', 'height'], true);
                         
-                        // Party Name (Higher offset for safety)
+                        // Party Name (Tighter offset)
                         ctx.font = '700 11px Inter';
-                        ctx.fillStyle = '#1e293b';
+                        ctx.fillStyle = '#334155';
                         ctx.textAlign = 'left';
                         ctx.fillText(label, 0, rect.y - 18);
 
-                        // Value + Pct
-                        ctx.font = '600 10px Inter';
+                        // Value + Pct (Aligned relative to thicker bar)
+                        ctx.font = '700 10px Inter';
                         ctx.fillStyle = '#64748b';
                         ctx.textAlign = 'left';
                         let txt = val.toLocaleString();
                         if (pct !== null) txt += ` (${pct.toFixed(1)}%)`;
-                        ctx.fillText(txt, rect.x + 10, rect.y + 4);
+                        ctx.fillText(txt, rect.x + 8, rect.y + 4);
                     });
                     ctx.restore();
                 }
@@ -163,7 +163,7 @@ export const ChartsModule = {
                 maintainAspectRatio: false,
                 animation: false,
                 layout: {
-                    padding: { left: 0, right: 90, top: 40, bottom: 10 }
+                    padding: { left: 0, right: 100, top: 25, bottom: 5 }
                 },
                 plugins: {
                     legend: {

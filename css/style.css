@@ -1273,7 +1273,7 @@ a {
 .chart-block {
   padding: 16px 18px;
   border-bottom: 1px solid var(--c-border);
-  min-height: 450px;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
 }

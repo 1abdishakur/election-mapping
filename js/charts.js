@@ -19,9 +19,9 @@ export const ChartsModule = {
 
     updateTheme(theme) {
         const isDark = theme === 'dark';
-        this.textColor = isDark ? '#f1f5f9' : '#1e293b';
-        this.mutedColor = isDark ? '#94a3b8' : '#64748b';
-        this.gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        this.textColor = isDark ? '#F9FAFB' : '#1F2937';
+        this.mutedColor = isDark ? '#9CA3AF' : '#6B7280';
+        this.gridColor = isDark ? '#334155' : '#E5E7EB';
 
         Chart.defaults.color = this.textColor;
         
@@ -64,19 +64,23 @@ export const ChartsModule = {
         const totalCand = (g.male || 0) + (g.female || 0) || 1;
         const totalWin = (g.maleWinners || 0) + (g.femaleWinners || 0) || 1;
 
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const winColor = isDark ? '#22C55E' : '#16A34A';
+        const candColor = isDark ? '#334155' : '#9CA3AF';
+
         this.charts.genderRep.data.labels = ['Male', 'Female'];
         this.charts.genderRep.data.datasets = [
             { 
                 label: 'Candidates', 
                 data: [g.male || 0, g.female || 0], 
-                backgroundColor: '#64748b', 
+                backgroundColor: candColor, 
                 borderRadius: 5,
                 pcts: [(g.male || 0)/totalCand*100, (g.female || 0)/totalCand*100] 
             },
             { 
                 label: 'Winners', 
                 data: [g.maleWinners || 0, g.femaleWinners || 0], 
-                backgroundColor: '#10b981',
+                backgroundColor: winColor,
                 borderRadius: 5,
                 pcts: [(g.maleWinners||0)/totalWin*100, (g.femaleWinners||0)/totalWin*100] 
             }
@@ -84,10 +88,11 @@ export const ChartsModule = {
         this.charts.genderRep.update('none');
 
         // 5: Efficiency (Votes % vs Seats %)
+        const blueCol = isDark ? '#3B82F6' : '#2563EB';
         this.charts.efficiency.data.labels = arr.map(x => x.name);
         this.charts.efficiency.data.datasets = [
-            { label: 'Vote Share %', data: arr.map(x => x.vPct), backgroundColor: '#6366f1', borderRadius: 5 },
-            { label: 'Seat Share %', data: arr.map(x => x.sPct), backgroundColor: '#f59e0b', borderRadius: 5 }
+            { label: 'Vote Share %', data: arr.map(x => x.vPct), backgroundColor: blueCol, borderRadius: 5 },
+            { label: 'Seat Share %', data: arr.map(x => x.sPct), backgroundColor: '#F59E0B', borderRadius: 5 }
         ];
         this.charts.efficiency.update('none');
     },

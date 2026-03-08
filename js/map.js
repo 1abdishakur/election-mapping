@@ -441,13 +441,13 @@ export const MapModule = {
         const tbody = this._comparePanel.querySelector('#cp-tbody');
 
         // Build Header Row
-        let headHtml = `<tr><th class="cp-label-col" style="background:#f1f5f9;">DATA FIELDS</th>`;
+        let headHtml = `<tr><th class="cp-label-col">DATA FIELDS</th>`;
         this._pinnedDistricts.forEach((d, idx) => {
             headHtml += `
                 <th style="min-width:140px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="color:#1e293b;">${d.district_name}</span>
-                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:#ef4444; font-size:16px;">×</span>
+                        <span>${d.district_name}</span>
+                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:var(--c-danger); font-size:16px;">×</span>
                     </div>
                 </th>`;
         });
@@ -484,9 +484,9 @@ export const MapModule = {
                     <div style="display:flex; flex-direction:column; gap:2px;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0;"></div>
-                            <span style="font-weight:800; color:#1e293b; font-size:10px; white-space:normal; line-height:1.1; max-width:120px;">${w.party_name || '—'}</span>
+                            <span style="font-weight:800; color:var(--c-text); font-size:10px; white-space:normal; line-height:1.1; max-width:120px;">${w.party_name || '—'}</span>
                         </div>
-                        <div style="font-weight:700; color:#92400e; font-size:9px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
+                        <div style="font-weight:700; color:var(--c-warn); font-size:9px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
                     </div>
                 ` : '—'}
             </td>`;
@@ -659,12 +659,13 @@ export const MapModule = {
     styleFeature(feature) {
         const d = feature.properties.data || {};
         const color = this.getColor(d);
-        const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
+        const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const borderColor = isSelected ? '#fbbf24' : (activeTheme === 'dark' ? '#CBD5F5' : '#6B7280');
         
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: isSelected ? '#fbbf24' : '#666666',
+            color: borderColor,
             weight: isSelected ? 3 : 1,
             dashArray: null
         };

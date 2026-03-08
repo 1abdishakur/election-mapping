@@ -756,6 +756,12 @@ export const MapModule = {
     },
 
     // ── Centers Layer ─────────────────────────────────────────
+    _getCenterStyle(isReg, isPoll) {
+        if (isReg && !isPoll) return { fillColor: '#1a1a1a', color: '#ffffff', weight: 1.5 };  // Black = Registration
+        if (isPoll && !isReg) return { fillColor: '#FFD700', color: '#1a1a1a', weight: 1.5 };  // Yellow = Polling
+        return { fillColor: '#1a1a1a', color: '#FFD700', weight: 3 };                           // Black + Yellow border = Both
+    },
+
     buildCentersLayer(geoJSON) {
         const markers = window.L.markerClusterGroup ? L.markerClusterGroup({
             maxClusterRadius: 40,
@@ -773,25 +779,18 @@ export const MapModule = {
 
                 const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
                 const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
-                const color = isReg && isPoll ? '#2563eb' : isReg ? '#059669' : '#d97706';
+                const style = this._getCenterStyle(isReg, isPoll);
                 const type = isReg && isPoll ? 'Registration & Polling' : isReg ? 'Registration' : 'Polling';
 
                 const marker = L.circleMarker([lat, lng], {
-                    radius: 5,
-                    fillColor: color,
-                    fillOpacity: 0.9,
-                    color: '#fff',
-                    weight: 1.5
+                    radius: 6,
+                    fillColor: style.fillColor,
+                    fillOpacity: 0.95,
+                    color: style.color,
+                    weight: style.weight
                 });
 
-                marker.bindPopup(`
-                    <div class="center-popup">
-                        <div class="cp-name">${c.center_name || 'Center'}</div>
-                        <div class="cp-row"><span>Type</span><strong>${type}</strong></div>
-                        <div class="cp-row"><span>Stations</span><strong>${c.polling_stations_count || 0}</strong></div>
-                        <div class="cp-row"><span>District</span><strong>${d.district_name}</strong></div>
-                    </div>`, { maxWidth: 200 });
-
+                marker.on('click', () => this._openCenterModal(c, d, type, isReg, isPoll));
                 markers.addLayer(marker);
             });
         });
@@ -823,17 +822,14 @@ export const MapModule = {
 
                     const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
                     const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
-                    const color = isReg && isPoll ? '#2563eb' : isReg ? '#059669' : '#d97706';
+                    const style = this._getCenterStyle(isReg, isPoll);
                     const type = isReg && isPoll ? 'Registration & Polling' : isReg ? 'Registration' : 'Polling';
 
                     const marker = L.circleMarker([lat, lng], {
-                        radius: 6, fillColor: color, fillOpacity: 0.9, color: '#fff', weight: 1.5
+                        radius: 8, fillColor: style.fillColor, fillOpacity: 0.95,
+                        color: style.color, weight: style.weight
                     });
-                    marker.bindPopup(`<div class="center-popup">
-                        <div class="cp-name">${c.center_name || 'Center'}</div>
-                        <div class="cp-row"><span>Type</span><strong>${type}</strong></div>
-                        <div class="cp-row"><span>Stations</span><strong>${c.polling_stations_count || 0}</strong></div>
-                    </div>`, { maxWidth: 200 });
+                    marker.on('click', () => this._openCenterModal(c, d, type, isReg, isPoll));
                     markers.push(marker);
                 });
             }
@@ -844,6 +840,60 @@ export const MapModule = {
             markers.forEach(m => this.activeCentersLayer.addLayer(m));
             this.activeCentersLayer.addTo(this.map);
         }
+    },
+
+    _openCenterModal(c, d, type, isReg, isPoll) {
+        const existing = document.getElementById('center-detail-modal');
+        if (existing) existing.remove();
+
+        const isBoth = isReg && isPoll;
+        const isRegOnly = isReg && !isPoll;
+
+        const modal = document.createElement('div');
+        modal.id = 'center-detail-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);';
+
+        modal.innerHTML = `
+            <style>@keyframes cmUp{from{opacity:0;transform:translateY(20px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
+            <div style="background:var(--c-surface,#1e293b);border:1px solid var(--c-border,#334155);border-radius:20px;max-width:420px;width:94%;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,0.55);animation:cmUp 0.28s cubic-bezier(0.34,1.56,0.64,1);">
+                <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:22px;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;">
+                    <button onclick="document.getElementById('center-detail-modal').remove()" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);color:#94a3b8;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">&times;</button>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <div style="width:46px;height:46px;border-radius:50%;flex-shrink:0;background:${isRegOnly ? '#222' : '#FFD700'};border:${isBoth ? '3px solid #FFD700;background:#111' : '2px solid rgba(255,255,255,0.2)'};box-shadow:0 4px 16px rgba(0,0,0,0.4);"></div>
+                        <div>
+                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#475569;margin-bottom:4px;">Voting Center</div>
+                            <div style="font-size:16px;font-weight:700;color:#f1f5f9;line-height:1.25;">${c.center_name || 'Unknown Center'}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                        ${isReg ? '<span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;">&#11200; Registration</span>' : ''}
+                        ${isPoll ? '<span style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:#fbbf24;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;">&#11044; Polling</span>' : ''}
+                    </div>
+                </div>
+                <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:12px;padding:14px;">
+                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px;">Polling Stations</div>
+                        <div style="font-size:26px;font-weight:800;color:#38bdf8;">${c.polling_stations_count || '0'}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;">
+                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px;">District</div>
+                        <div style="font-size:14px;font-weight:700;color:#e2e8f0;">${d.district_name || '—'}</div>
+                    </div>
+                </div>
+                <div style="padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
+                        <div style="font-size:9px;color:#475569;margin-bottom:5px;text-transform:uppercase;">Latitude</div>
+                        <div style="font-size:12px;font-weight:600;color:#94a3b8;font-family:monospace;">${parseFloat(c.latitude).toFixed(6)}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
+                        <div style="font-size:9px;color:#475569;margin-bottom:5px;text-transform:uppercase;">Longitude</div>
+                        <div style="font-size:12px;font-weight:600;color:#94a3b8;font-family:monospace;">${parseFloat(c.longitude).toFixed(6)}</div>
+                    </div>
+                </div>
+            </div>`;  
+
+        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
     },
 
     showDistrictFocus(districtCode) {
@@ -984,6 +1034,35 @@ export const MapModule = {
             cfg.stops.forEach((v, i) => {
                 div.innerHTML += `<br><i style="background:${cfg.colors[i]}"></i>${v.toLocaleString()}${cfg.suffix}+`;
             });
+
+            // ── Centers & Stations summary ─────────────────────
+            if (self.geoJSONLayer) {
+                let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
+                self.geoJSONLayer.eachLayer(layer => {
+                    const data = layer.feature?.properties?.data;
+                    if (!data || !data.centers) return;
+                    data.centers.forEach(c => {
+                        const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
+                        const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
+                        totalCenters++;
+                        totalStations += parseInt(c.polling_stations_count) || 0;
+                        if (isReg && isPoll) both++;
+                        else if (isReg) regOnly++;
+                        else if (isPoll) pollOnly++;
+                    });
+                });
+                if (totalCenters > 0) {
+                    div.innerHTML += `
+                        <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);">
+                            <strong style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;">Centers</strong>
+                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a1a1a;border:1.5px solid #fff;margin-right:5px;vertical-align:middle;"></span>Registration: ${regOnly}
+                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FFD700;border:1.5px solid #1a1a1a;margin-right:5px;vertical-align:middle;"></span>Polling: ${pollOnly}
+                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a1a1a;border:2.5px solid #FFD700;margin-right:5px;vertical-align:middle;"></span>Both: ${both}
+                            <br><span style="color:#94a3b8;font-size:11px;">Total: ${totalCenters} centers · ${totalStations} stations</span>
+                        </div>`;
+                }
+            }
+
             return div;
         };
         this.legendControl.addTo(this.map);

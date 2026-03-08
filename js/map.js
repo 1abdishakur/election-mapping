@@ -12,11 +12,31 @@ export const MapModule = {
     _activePartyCode: null,
     selectedDistrictCode: null,
     _comparePanel: null,
-    _comparePanel: null,
     _miniMap: null,
     _hideTimer: null,
     _panelLocked: false,
     _pinnedDistricts: [],
+    _stateColorMap: {},
+
+    // 12 vivid, maximally-distinct state border colors
+    _STATE_PALETTE: [
+        '#e63946', '#f77f00', '#fcbf49', '#2dc653', '#4cc9f0',
+        '#7b2d8b', '#f72585', '#3a86ff', '#06d6a0', '#ffd166',
+        '#ef476f', '#118ab2'
+    ],
+
+    _buildStateColorMap(geoJSON) {
+        this._stateColorMap = {};
+        let idx = 0;
+        (geoJSON.features || []).forEach(f => {
+            const stateName = (f.properties.State || f.properties.state || '').trim();
+            if (stateName && !this._stateColorMap[stateName]) {
+                this._stateColorMap[stateName] = this._STATE_PALETTE[idx % this._STATE_PALETTE.length];
+                idx++;
+            }
+        });
+        console.log('[Map] State border colors:', this._stateColorMap);
+    },
 
     // ── Tile Layers ──────────────────────────────────────────
     TILES: {
@@ -198,7 +218,16 @@ export const MapModule = {
     renderDistricts(geoJSON) {
         if (this.geoJSONLayer) this.geoJSONLayer.remove();
 
-        this.geoJSONLayer = L.geoJSON(geoJSON, {
+        // Build the state→color map from the full GeoJSON State property
+        this._buildStateColorMap(geoJSON);
+
+        // ── Only render districts that HAVE real election data ──
+        const dataJSON = {
+            type: 'FeatureCollection',
+            features: (geoJSON.features || []).filter(f => f.properties.data != null)
+        };
+
+        this.geoJSONLayer = L.geoJSON(dataJSON, {
             style: f => this.styleFeature(f),
             onEachFeature: (f, layer) => this.bindFeatureEvents(f, layer)
         }).addTo(this.map);
@@ -687,14 +716,17 @@ export const MapModule = {
         const d = feature.properties.data || {};
         const color = this.getColor(d);
         const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
-        const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
-        const borderColor = isSelected ? '#fbbf24' : (activeTheme === 'dark' ? '#CBD5F5' : '#6B7280');
+
+        // Use state-specific border color so districts within the same state share a color
+        const stateName = (feature.properties.State || feature.properties.state || '').trim();
+        const stateBorderColor = this._stateColorMap[stateName] || '#6B7280';
+        const borderColor = isSelected ? '#fbbf24' : stateBorderColor;
         
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
             color: borderColor,
-            weight: isSelected ? 3 : 1,
+            weight: isSelected ? 3.5 : 2,
             dashArray: null
         };
     },
@@ -967,7 +999,25 @@ export const MapModule = {
     updateLegend() {
         if (this.legendControl) this.legendControl.remove();
 
-        if (this.currentMode === 'default') return;
+        // In default mode show the state border-color key
+        if (this.currentMode === 'default') {
+            const stateEntries = Object.entries(this._stateColorMap);
+            if (stateEntries.length === 0) return;
+
+            const self = this;
+            this.legendControl = L.control({ position: 'bottomright' });
+            this.legendControl.onAdd = function () {
+                const div = L.DomUtil.create('div', 'info legend');
+                div.innerHTML = `<strong style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">States</strong>`;
+                stateEntries.forEach(([name, color]) => {
+                    div.innerHTML += `<br><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:${color};margin-right:6px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,0.3);"></span>${name}`;
+                });
+                div.innerHTML += `<div style="margin-top:6px;font-size:9.5px;opacity:0.6;">Border color = State</div>`;
+                return div;
+            };
+            this.legendControl.addTo(this.map);
+            return;
+        }
 
         const self = this;
         this.legendControl = L.control({ position: 'bottomright' });

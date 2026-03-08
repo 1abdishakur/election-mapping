@@ -445,9 +445,9 @@ export const MapModule = {
         this._pinnedDistricts.forEach((d, idx) => {
             headHtml += `
                 <th>
-                    <div style="display:flex; align-items:center; gap:10px; white-space:nowrap;">
-                        <span>${d.district_name}</span>
-                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:var(--c-danger); font-size:18px; line-height:1;">×</span>
+                    <div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                        <span style="font-size:10.5px;">${d.district_name}</span>
+                        <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:var(--c-danger); font-size:16px; line-height:1;">×</span>
                     </div>
                 </th>`;
         });
@@ -484,9 +484,9 @@ export const MapModule = {
                     <div style="display:flex; flex-direction:column; gap:4px; text-align:left;">
                         <div style="display:flex; align-items:flex-start; gap:6px;">
                             <div style="width:8px; height:8px; border-radius:50%; background:${w.party_color || '#6b7280'}; flex-shrink:0; margin-top:3px;"></div>
-                            <span style="font-weight:800; color:var(--c-text); font-size:10px; white-space:normal; line-height:1.2; max-width:140px;">${w.party_name || '—'}</span>
+                            <span style="font-weight:800; color:var(--c-text); font-size:9.5px; white-space:normal; line-height:1.2; max-width:110px;">${w.party_name || '—'}</span>
                         </div>
-                        <div style="font-weight:700; color:var(--c-warn); font-size:9.5px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
+                        <div style="font-weight:700; color:var(--c-warn); font-size:9px; margin-left:14px; opacity:0.9;">${w.seats_won || 0} SEATS WON</div>
                     </div>
                 ` : '—'}
             </td>`;

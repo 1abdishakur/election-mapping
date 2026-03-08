@@ -1711,14 +1711,15 @@ a {
 }
 
 /* High-Density Comparison Arena (Zero Scroll) */
-/* District Comparison Arena (Zero Scroll) */
 .comparison-panel {
   position: absolute;
-  top: 70px;
+  top: 60px;
   left: 20px;
   width: fit-content;
-  min-width: 200px;
+  min-width: 140px;
   max-width: 95vw;
+  max-height: calc(100% - 140px); /* Leave room at the bottom */
+  margin-bottom: 20px; 
   z-index: 1200;
   display: none;
   background: var(--c-surface);
@@ -1727,9 +1728,11 @@ a {
   border-radius: 10px;
   box-shadow: var(--shadow-md);
   animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex-direction: column;
   pointer-events: auto;
+  padding-bottom: 10px; /* Internal safety margin */
 }
 
 [data-theme="dark"] .comparison-panel {
@@ -1779,7 +1782,7 @@ a {
 .cp-table th:last-child { border-right: none; }
 
 .cp-table td {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-bottom: 1px solid var(--c-border);
   border-right: 1px solid var(--c-border);
   color: var(--c-text);

@@ -70,8 +70,8 @@ export const UIController = {
 
         // Close all on background click
         document.addEventListener('click', e => {
-            if (!e.target.closest('.navbar') && 
-                !e.target.closest('.sidebar') && 
+            if (!e.target.closest('.navbar') &&
+                !e.target.closest('.sidebar') &&
                 !e.target.closest('.charts-panel') &&
                 !e.target.closest('.mobile-fab-container')) {
                 nv.classList.remove('open');
@@ -88,11 +88,11 @@ export const UIController = {
         if (!btn) return;
         const sunIcon = btn.querySelector('.sun-icon');
         const moonIcon = btn.querySelector('.moon-icon');
-        
+
         const setTheme = (theme, persist = true) => {
             document.documentElement.setAttribute('data-theme', theme);
             if (persist) localStorage.setItem('dashboard-theme', theme);
-            
+
             if (theme === 'dark') {
                 sunIcon.style.display = 'none';
                 moonIcon.style.display = 'block';
@@ -162,7 +162,7 @@ export const UIController = {
         if (statParties) {
             const vps = (data.totalSeats > 0) ? (data.totalVotes / data.totalSeats) : 0;
             const vpsText = (isSpecific && vps > 0) ? `${fmt(Math.round(vps))} / Seat` : '—';
-            
+
             statParties.innerHTML = `
                 <div class="kpi-main-val">0</div>
                 <div class="kpi-sub">${vpsText}</div>

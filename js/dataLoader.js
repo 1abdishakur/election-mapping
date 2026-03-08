@@ -8,7 +8,8 @@ import { CONFIG } from './config.js?v=3';
 export const DataLoader = {
 
     buildUrl(sheetName) {
-        return `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+        const timestamp = new Date().getTime();
+        return `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&t=$${timestamp}`;
     },
 
     async fetchSheet(name, sheetName) {

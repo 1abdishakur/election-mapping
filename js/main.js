@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=143';
-import { DataJoiner } from './dataJoiner.js?v=143';
-import { MapModule } from './map.js?v=143';
-import { ChartsModule } from './charts.js?v=143';
-import { UIController } from './ui.js?v=143';
+import { DataLoader } from './dataLoader.js?v=146';
+import { DataJoiner } from './dataJoiner.js?v=146';
+import { MapModule } from './map.js?v=146';
+import { ChartsModule } from './charts.js?v=146';
+import { UIController } from './ui.js?v=146';
 
 /** Central Application State */
 const AppState = {
@@ -87,7 +87,59 @@ class ElectionDashboard {
 
             UIController.hideLoading();
             console.log('[App] Ready');
+            this.startLiveSync();
         }, 300);
+    }
+
+    // ── Live Data Sync ────────────────────────────────────────
+    startLiveSync() {
+        console.log('[App] Live Sync started (interval: 60s)');
+        setInterval(async () => {
+            await this.refreshData();
+        }, 60000);
+    }
+
+    async refreshData() {
+        // Minimal background fetch
+        try {
+            const rawTables = await DataLoader.loadAllTables();
+            this.allTables = rawTables;
+            
+            const result = DataJoiner.processData(rawTables);
+            this.masterData = result.districtMaster;
+            this.globalSummary = result.summary;
+            this.parties = result.parties;
+            
+            // Attach fresh data to existing GeoJSON structure
+            this.geoJSON = DataJoiner.attachToGeoJSON(this.geoJSON, this.masterData);
+
+            // Notify map to update its visuals and properties without re-adding borders
+            MapModule.updateData();
+
+            // Notify dashboard to reapply its state
+            this.reapplyState();
+        } catch (err) {
+            console.warn("[App] Live Sync failed this cycle:", err);
+        }
+    }
+
+    reapplyState() {
+        // Find current context layer
+        if (AppState.selectedDistrict !== 'all') {
+            const d = this.masterData.find(x => (x.district_code || x.dist_code) === AppState.selectedDistrict);
+            if (d) {
+                // If focused on a district, update only the mini panel but preserve the state of things
+                UIController.updateMiniPanel(d);
+            }
+        } else {
+            // Apply global or state calculations
+            const filtered = this.filterDistricts();
+            const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
+            UIController.updateKPIs(summary);
+            UIController.updateMiniPanel(summary);
+            ChartsModule.update(summary, this.parties);
+            this.updatePartyList(summary);
+        }
     }
 
     // ── Handlers ──────────────────────────────────────────────
@@ -173,7 +225,7 @@ class ElectionDashboard {
             AppState.selectedDistrict = 'all';
             const distFilter = document.getElementById('district-filter');
             if (distFilter) distFilter.value = 'all';
-            
+
             MapModule.selectedDistrictCode = null;
             if (MapModule.geoJSONLayer?.getBounds().isValid()) {
                 MapModule.map.fitBounds(MapModule.geoJSONLayer.getBounds(), { padding: [25, 25] });
@@ -185,7 +237,7 @@ class ElectionDashboard {
 
         const filtered = this.filterDistricts();
         const partySummary = this.buildPartySummary(filtered, partyCode);
-        
+
         // Update all metrics based on the broader context (not just the previous district)
         UIController.updateKPIs(partySummary);
         UIController.updateMiniPanel(partySummary);
@@ -199,7 +251,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(`${name}`, modeLabel);
-        
+
         // Re-highlight the selected item since we just re-rendered the list
         setTimeout(() => {
             const items = document.querySelectorAll('.party-item');

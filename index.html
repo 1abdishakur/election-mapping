@@ -56,7 +56,7 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <span class="brand-text">Elections Dashboard</span>
+                <span class="brand-text">Elections Dashboard <span class="live-indicator">LIVE</span></span>
             </div>
             <div class="navbar-content" id="navbar-content">
                 <div class="navbar-badges hide-mobile">
@@ -78,16 +78,18 @@
                     </div>
                     <div class="control-item search-wrap">
                         <div class="search-box">
-                            <input type="text" id="district-search" class="control-select" placeholder="Search district…"
-                                autocomplete="off">
+                            <input type="text" id="district-search" class="control-select"
+                                placeholder="Search district…" autocomplete="off">
                             <div id="search-results" class="search-dropdown"></div>
                         </div>
                     </div>
                 </div>
                 <div class="navbar-actions">
-                    <button id="theme-toggle-btn" class="toggle-btn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+                    <button id="theme-toggle-btn" class="toggle-btn" title="Toggle Dark/Light Mode"
+                        aria-label="Toggle Theme">
                         <!-- Moon Icon (Dark Mode) -->
-                        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="5"></circle>
                             <line x1="12" y1="1" x2="12" y2="3"></line>
                             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -98,12 +100,15 @@
                             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                         </svg>
-                        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" style="display:none;">
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                         </svg>
                     </button>
-                    <button id="export-map-btn" class="btn btn-outline" style="display:flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button id="export-map-btn" class="btn btn-outline"
+                        style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
                             </path>
                             <circle cx="12" cy="13" r="4"></circle>
@@ -177,7 +182,8 @@
                 <div class="map-container">
                     <div id="map"></div>
                     <div class="map-context-badge glass-panel" id="map-context">Voter Turnout — National View</div>
-                    <div class="map-disclaimer">Disclaimer: Boundaries shown are for technical operational purposes only and do not represent official endorsement by the NIEBC.</div>
+                    <div class="map-disclaimer">Disclaimer: Boundaries shown are for technical operational purposes only
+                        and do not represent official endorsement by the NIEBC.</div>
                 </div>
             </div>
 
@@ -239,8 +245,9 @@
                     <button id="close-export-modal" class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p class="modal-hint">Choose your preferred paper size and orientation for the final PDF document.</p>
-                    
+                    <p class="modal-hint">Choose your preferred paper size and orientation for the final PDF document.
+                    </p>
+
                     <div class="export-options">
                         <div class="option-group">
                             <label class="option-label">Paper Size</label>
@@ -257,13 +264,15 @@
                             <label class="option-label">Orientation</label>
                             <div class="orientation-toggle">
                                 <button class="orient-btn selected" data-orient="portrait">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
                                         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                                     </svg>
                                     Portrait
                                 </button>
                                 <button class="orient-btn" data-orient="landscape">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
                                         <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
                                     </svg>
                                     Landscape
@@ -294,10 +303,11 @@
         </div>
 
         <footer class="footer">
-            <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL COMMISSION</span>
+            <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL
+                COMMISSION</span>
         </footer>
     </div>
-    <script type="module" src="js/main.js?v=143"></script>
+    <script type="module" src="js/main.js?v=146"></script>
 </body>
 
 </html>

@@ -203,11 +203,32 @@ export const MapModule = {
         }).addTo(this.map);
 
         this.computeDynamicRanges();
-
-        // Note: updateLabels is NOT called here because during init the map
-        // has no center/zoom yet. It is called after fitBounds in init(),
-        // and on every zoomend/moveend afterwards.
         this.updateLegend();
+    },
+
+    updateData() {
+        if (!this.geoJSONLayer) return;
+        
+        // 1. Re-calculate color bin sizes and ranges
+        this.computeDynamicRanges();
+        
+        // 2. Safely re-apply styles to all polygons
+        this.geoJSONLayer.setStyle(f => this.styleFeature(f));
+        
+        // 3. Update legend counts and thresholds
+        this.updateLegend();
+        
+        // 4. Update the polygon text labels seamlessly
+        this.updateLabels();
+        
+        // 5. Update Hover/Active Info card if currently open and locked
+        if (this._panelLocked && this.selectedDistrictCode) {
+            this.geoJSONLayer.eachLayer(layer => {
+                const props = layer.feature?.properties?.data;
+                const match = props && (props.dist_code === this.selectedDistrictCode || props.district_code === this.selectedDistrictCode);
+                if (match) this.showDistrictFocus(this.selectedDistrictCode);
+            });
+        }
     },
 
     computeDynamicRanges() {

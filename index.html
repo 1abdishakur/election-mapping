@@ -25,14 +25,15 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-    <!-- html2canvas -->
+    <!-- html2canvas & jsPDF -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css?v=69">
+    <link rel="stylesheet" href="css/style.css?v=70">
 </head>
 
 <body>
@@ -230,11 +231,73 @@
             </div>
         </div>
 
+        <!-- ── EXPORT MODAL ───────────────────────────────────── -->
+        <div id="export-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-card glass-panel">
+                <div class="modal-header">
+                    <h2 class="modal-title">Export Map to PDF</h2>
+                    <button id="close-export-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-hint">Choose your preferred paper size and orientation for the final PDF document.</p>
+                    
+                    <div class="export-options">
+                        <div class="option-group">
+                            <label class="option-label">Paper Size</label>
+                            <div class="size-grid">
+                                <button class="size-btn selected" data-size="a4">A4</button>
+                                <button class="size-btn" data-size="a3">A3</button>
+                                <button class="size-btn" data-size="a2">A2</button>
+                                <button class="size-btn" data-size="a1">A1</button>
+                                <button class="size-btn" data-size="a0">A0</button>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <label class="option-label">Orientation</label>
+                            <div class="orientation-toggle">
+                                <button class="orient-btn selected" data-orient="portrait">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                    </svg>
+                                    Portrait
+                                </button>
+                                <button class="orient-btn" data-orient="landscape">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+                                    </svg>
+                                    Landscape
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <label class="option-label">Branding & Context</label>
+                            <div style="display:grid; gap:8px;">
+                                <label class="check-item">
+                                    <input type="checkbox" id="export-show-legend" checked>
+                                    <span>Include Map Legend</span>
+                                </label>
+                                <label class="check-item">
+                                    <input type="checkbox" id="export-show-title" checked>
+                                    <span>Include Page Title</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancel-export" class="btn btn-outline" style="flex:1;">Cancel</button>
+                    <button id="confirm-export" class="btn" style="flex:2;">Generate PDF</button>
+                </div>
+            </div>
+        </div>
+
         <footer class="footer">
             <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL COMMISSION</span>
         </footer>
     </div>
-    <script type="module" src="js/main.js?v=139"></script>
+    <script type="module" src="js/main.js?v=140"></script>
 </body>
 
 </html>

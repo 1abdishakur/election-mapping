@@ -968,22 +968,175 @@ export const MapModule = {
     },
 
     // ── Snapshot Export ──────────────────────────────────────
+    // ── Advanced PDF Export ──────────────────────────────────
     exportMap() {
-        if (!window.html2canvas) return;
+        this.openExportModal();
+    },
 
-        const mapEl = document.getElementById('map');
-        const oldTransform = mapEl.style.transform;
+    openExportModal() {
+        const modal = document.getElementById('export-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
 
-        // Temporarily reset any transforms that might ruin off-screen tiles (just in case)
-        window.html2canvas(mapEl, {
+        // Wire modal internal events if not already done
+        if (!this._exportInit) {
+            this._initExportModalEvents();
+            this._exportInit = true;
+        }
+    },
+
+    _initExportModalEvents() {
+        const modal = document.getElementById('export-modal');
+        const closeBtn = document.getElementById('close-export-modal');
+        const cancelBtn = document.getElementById('cancel-export');
+        const confirmBtn = document.getElementById('confirm-export');
+
+        const closeModal = () => modal.style.display = 'none';
+        closeBtn.onclick = closeModal;
+        cancelBtn.onclick = closeModal;
+
+        // Size & Orientation Selection
+        const sizeBtns = modal.querySelectorAll('.size-btn');
+        sizeBtns.forEach(btn => {
+            btn.onclick = () => {
+                sizeBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+        });
+
+        const orientBtns = modal.querySelectorAll('.orient-btn');
+        orientBtns.forEach(btn => {
+            btn.onclick = () => {
+                orientBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+        });
+
+        confirmBtn.onclick = async () => {
+            const size = modal.querySelector('.size-btn.selected').dataset.size;
+            const orientation = modal.querySelector('.orient-btn.selected').dataset.orient;
+            const showLegend = document.getElementById('export-show-legend').checked;
+            const showTitle = document.getElementById('export-show-title').checked;
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Generating...';
+
+            try {
+                await this.generateModernPDF({ size, orientation, showLegend, showTitle });
+                closeModal();
+            } catch (err) {
+                console.error("PDF Export failed: ", err);
+                alert("Failed to generate PDF. Please try again.");
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Generate PDF';
+            }
+        };
+    },
+
+    async generateModernPDF(options) {
+        const { size, orientation, showLegend, showTitle } = options;
+        
+        // 1. Determine Context Bounds for Smart Zoom
+        let bounds = null;
+        if (this.selectedDistrictCode && this.geoJSONLayer) {
+            this.geoJSONLayer.eachLayer(layer => {
+                const props = layer.feature?.properties?.data;
+                if (props && (props.dist_code === this.selectedDistrictCode || props.district_code === this.selectedDistrictCode)) {
+                    bounds = layer.getBounds();
+                }
+            });
+        }
+
+        if (!bounds && this.geoJSONLayer) {
+            bounds = this.geoJSONLayer.getBounds(); // Either state or national depending on current layer state
+        }
+
+        // Apply smart zoom if bounds found
+        if (bounds && bounds.isValid()) {
+            this.map.fitBounds(bounds, { padding: [20, 20], animate: false });
+        }
+
+        // Wait a bit for map to settle/tiles to load
+        await new Promise(r => setTimeout(r, 800));
+
+        const mapContainer = document.querySelector('.map-container');
+        const canvas = await window.html2canvas(mapContainer, {
             useCORS: true,
             allowTaint: false,
-            backgroundColor: '#e5e7eb'
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `election_map_${new Date().getTime()}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        }).catch(err => console.error("Snapshot failed: ", err));
+            scale: 2, // Higher quality
+            backgroundColor: '#f1f5f9',
+            ignoreElements: (el) => el.classList.contains('leaflet-control-zoom') || el.classList.contains('leaflet-control-attribution')
+        });
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: orientation,
+            unit: 'mm',
+            format: size
+        });
+
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const margin = 15;
+
+        // Draw Frame
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.5);
+        pdf.rect(margin - 5, margin - 5, pw - (margin * 2) + 10, ph - (margin * 2) + 10);
+
+        let currentY = margin;
+
+        // Title
+        if (showTitle) {
+            const contextText = document.getElementById('map-context')?.textContent || 'Election Map Overview';
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(size === 'a0' ? 32 : size === 'a1' ? 28 : 22);
+            pdf.text(contextText.toUpperCase(), margin, currentY);
+            currentY += (size === 'a0' ? 15 : 10);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+            pdf.setTextColor(156, 163, 175);
+            pdf.text(`Generated on: ${new Date().toLocaleString()}`, margin, currentY);
+            currentY += 10;
+        }
+
+        // Map Image
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const mapW = pw - (margin * 2);
+        const mapH = (canvas.height * mapW) / canvas.width;
+        
+        // Ensure map fits height
+        const availableH = ph - currentY - margin - (showLegend ? 30 : 0);
+        let finalH = mapH;
+        let finalW = mapW;
+        if (mapH > availableH) {
+            finalH = availableH;
+            finalW = (canvas.width * finalH) / canvas.height;
+        }
+        
+        const centerX = (pw - finalW) / 2;
+        pdf.addImage(imgData, 'JPEG', centerX, currentY, finalW, finalH);
+        currentY += finalH + 10;
+
+        // Legend if needed
+        if (showLegend && this.legendControl) {
+            const legendEl = document.querySelector('.info.legend');
+            if (legendEl) {
+                const legendCanvas = await window.html2canvas(legendEl, { scale: 2 });
+                const legData = legendCanvas.toDataURL('image/png');
+                const legW = 50; 
+                const legH = (legendCanvas.height * legW) / legendCanvas.width;
+                pdf.addImage(legData, 'PNG', pw - legW - margin, ph - legH - margin - 5, legW, legH);
+            }
+        }
+
+        // Footer Branding
+        pdf.setFontSize(8);
+        pdf.setTextColor(156, 163, 175);
+        pdf.text("NATIONAL INDEPENDENT ELECTORAL COMMISSION | Technical Operational Boundaries Only", margin, ph - margin + 4);
+
+        pdf.save(`Election_Map_${size.toUpperCase()}_${new Date().getTime()}.pdf`);
     }
 };

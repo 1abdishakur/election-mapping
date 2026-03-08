@@ -444,7 +444,7 @@ export const MapModule = {
         let headHtml = `<tr><th class="cp-label-col">DATA FIELDS</th>`;
         this._pinnedDistricts.forEach((d, idx) => {
             headHtml += `
-                <th style="min-width:140px;">
+                <th>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span>${d.district_name}</span>
                         <span class="cp-dist-remove" data-idx="${idx}" style="cursor:pointer; color:var(--c-danger); font-size:16px;">×</span>

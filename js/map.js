@@ -47,7 +47,8 @@ export const MapModule = {
             scrollWheelZoom: true,
             doubleClickZoom: true,
             dragging: true,
-            preferCanvas: true
+            preferCanvas: true,
+            attributionControl: false
         });
 
         this.labelsLayer = L.layerGroup().addTo(this.map);

@@ -527,7 +527,7 @@ export const MapModule = {
                 this._hideHoverPanel();
             },
             click: e => {
-                this.map.fitBounds(e.target.getBounds(), { padding: [40, 40], maxZoom: 12 });
+                this.map.fitBounds(e.target.getBounds(), { padding: [20, 20], maxZoom: 16 });
                 if (this.onDistrictClick && d) this.onDistrictClick(d);
             }
         });
@@ -640,7 +640,7 @@ export const MapModule = {
         this.geoJSONLayer.setStyle(f => this.styleFeature(f));
 
         if (targetLayer) {
-            this.map.fitBounds(targetLayer.getBounds(), { padding: [100, 100], maxZoom: 12 });
+            this.map.fitBounds(targetLayer.getBounds(), { padding: [20, 20], maxZoom: 16 });
         }
     },
 
@@ -666,7 +666,7 @@ export const MapModule = {
         };
         this.renderDistricts(filtered);
         if (this.geoJSONLayer.getBounds().isValid()) {
-            this.map.fitBounds(this.geoJSONLayer.getBounds(), { padding: [20, 20] });
+            this.map.fitBounds(this.geoJSONLayer.getBounds(), { padding: [10, 10] });
         }
     },
 

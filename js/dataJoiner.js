@@ -94,8 +94,8 @@ export const DataJoiner = {
             district.winner = this.getWinningParty(district.party_results);
 
             // Calculate Turnout Percentage (Based on ID Cards Collected per request)
-            const idHolders = (district.id_cards_collected || 0);
-            const actualTurnout = (district.valid_votes || 0) + (district.invalid_votes || 0);
+            const idHolders = Number(district.id_cards_collected || 0);
+            const actualTurnout = Number(district.valid_votes || 0) + Number(district.invalid_votes || 0);
             district.turnout_perc = idHolders > 0
                 ? (actualTurnout / idHolders) * 100
                 : 0;
@@ -233,9 +233,7 @@ export const DataJoiner = {
     },
 
     /**
-     * Convert strings to numbers for known numeric fields
-     */
-    normalize(tables) {
+     * Convert strings to numbers for known numeric    normalize(tables) {
         const numericFields = [
             'total_seats', 'total_cadidates', 'registered_people', 'id_cards_collected',
             'voters_turnout', 'valid_votes', 'invalid_votes', 'cadidates_submited',
@@ -246,18 +244,22 @@ export const DataJoiner = {
             'latitude', 'longitude'
         ];
 
-        // Deep copy and normalize
+        // Deep copy and normalize headers + values
         const processed = {};
         Object.entries(tables).forEach(([key, table]) => {
             processed[key] = table.map(row => {
-                const newRow = { ...row };
-                Object.keys(newRow).forEach(field => {
-                    if (numericFields.includes(field)) {
-                        let val = newRow[field];
+                const newRow = {};
+                Object.keys(row).forEach(header => {
+                    const cleanHeader = header.trim();
+                    let val = row[header];
+                    
+                    if (numericFields.includes(cleanHeader)) {
                         if (typeof val === 'string') {
-                            val = val.replace(/,/g, '');
+                            val = val.replace(/,/g, '').trim();
                         }
-                        newRow[field] = parseFloat(val) || 0;
+                        newRow[cleanHeader] = parseFloat(val) || 0;
+                    } else {
+                        newRow[cleanHeader] = typeof val === 'string' ? val.trim() : val;
                     }
                 });
                 return newRow;

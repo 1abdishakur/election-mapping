@@ -61,16 +61,7 @@ class ElectionDashboard {
             onShowAllParties: () => this.onShowAllParties()
         });
 
-        // Override states table with official list from user
-        rawTables.states = [
-            { state_code: 'BN', state_name: 'Banadir' },
-            { state_code: 'HS', state_name: 'Hirshabelle' },
-            { state_code: 'KG', state_name: 'Koofurgalbeed' },
-            { state_code: 'WB', state_name: 'Woqooyibari' },
-            { state_code: 'GM', state_name: 'Galmudug' }
-        ];
-
-        UIController.populateStateFilter(rawTables.states);
+        UIController.populateStateFilter(rawTables.states || []);
         UIController.populateDistrictFilter(this.masterData);
         UIController.updateKPIs(this.globalSummary);
         UIController.updateMiniPanel(this.globalSummary);

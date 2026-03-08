@@ -1716,9 +1716,9 @@ a {
   position: absolute;
   top: 70px;
   left: 20px;
-  width: auto;
-  min-width: 320px;
-  max-width: 950px;
+  width: fit-content;
+  min-width: 200px;
+  max-width: 95vw;
   z-index: 1200;
   display: none;
   background: var(--c-surface);
@@ -1767,7 +1767,7 @@ a {
 }
 
 .cp-table th {
-  padding: 8px 10px;
+  padding: 8px;
   text-align: left;
   background: var(--c-surface-2);
   color: var(--c-text-2);
@@ -1779,7 +1779,7 @@ a {
 .cp-table th:last-child { border-right: none; }
 
 .cp-table td {
-  padding: 6px 10px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--c-border);
   border-right: 1px solid var(--c-border);
   color: var(--c-text);

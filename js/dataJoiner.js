@@ -34,7 +34,7 @@ export const DataJoiner = {
         let colorIdx = 0;
 
         // The list of party codes that have official images in the local directory
-        const partiesWithLogos = ['2', '7', '9', '12', '15', '17', '23', '27', '28', '29', '33', '35', '37', '45', '48', '55'];
+        const partiesWithLogos = ['2', '7', '9', '12', '15', '17', '23', '27', '28', '29', '33', '35', '37', '38', '45', '48', '53', '55'];
 
         const partiesLookup = {};
         party_results.forEach(pr => {

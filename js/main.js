@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=146';
-import { DataJoiner } from './dataJoiner.js?v=146';
-import { MapModule } from './map.js?v=146';
-import { ChartsModule } from './charts.js?v=146';
-import { UIController } from './ui.js?v=146';
+import { DataLoader } from './dataLoader.js?v=147';
+import { DataJoiner } from './dataJoiner.js?v=147';
+import { MapModule } from './map.js?v=147';
+import { ChartsModule } from './charts.js?v=147';
+import { UIController } from './ui.js?v=147';
 
 /** Central Application State */
 const AppState = {
@@ -93,10 +93,10 @@ class ElectionDashboard {
 
     // ── Live Data Sync ────────────────────────────────────────
     startLiveSync() {
-        console.log('[App] Live Sync started (interval: 60s)');
+        console.log('[App] Live Sync started (interval: 30s)');
         setInterval(async () => {
             await this.refreshData();
-        }, 60000);
+        }, 30000);
     }
 
     async refreshData() {

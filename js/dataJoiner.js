@@ -356,7 +356,7 @@ export const DataJoiner = {
         } : null;
 
         return {
-            totalStates: uniqueStates.size,
+            totalStates: (fullTables && fullTables.states && fullTables.states.length > 0) ? fullTables.states.length : uniqueStates.size,
             totalDistricts: uniqueDistricts.size,
 
             candidates: {

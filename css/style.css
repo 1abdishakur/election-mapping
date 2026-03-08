@@ -1718,8 +1718,6 @@ a {
   width: fit-content;
   min-width: 140px;
   max-width: 95vw;
-  max-height: calc(100% - 140px); /* Leave room at the bottom */
-  margin-bottom: 20px; 
   z-index: 1200;
   display: none;
   background: var(--c-surface);
@@ -1728,11 +1726,11 @@ a {
   border-radius: 10px;
   box-shadow: var(--shadow-md);
   animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   flex-direction: column;
   pointer-events: auto;
-  padding-bottom: 10px; /* Internal safety margin */
+  padding-bottom: 15px; /* Internal safety margin */
+  margin-bottom: 60px; /* Force margin from footer */
 }
 
 [data-theme="dark"] .comparison-panel {

@@ -16,6 +16,7 @@ export const MapModule = {
     _miniMap: null,
     _hideTimer: null,
     _panelLocked: false,
+    _pinnedDistricts: [],
 
     // ── Tile Layers ──────────────────────────────────────────
     TILES: {
@@ -422,30 +423,85 @@ export const MapModule = {
 
     _pinDistrict(d) {
         if (!this._comparePanel) return;
-        const formatNum = (num) => (num || 0).toLocaleString();
+        const code = d.dist_code || d.district_code;
+        if (this._pinnedDistricts.some(p => (p.dist_code || p.district_code) === code)) return;
         
-        this._comparePanel.innerHTML = `
-            <div class="cp-pin-header">
-                <span class="cp-pin-title">Pinned: ${d.district_name}</span>
-                <span class="cp-close" id="cp-close">×</span>
-            </div>
-            <div class="hp-body" style="padding: 10px;">
-                <div class="hp-grid">
-                    <div class="hp-col"><div class="hp-label">Reg.</div><strong>${formatNum(d.registered_people)}</strong></div>
-                    <div class="hp-col"><div class="hp-label">IDs</div><strong>${d.id_collected_perc.toFixed(1)}%</strong></div>
-                </div>
-                <div class="hp-grid mt-1">
-                    <div class="hp-col"><div class="hp-label">Turnout</div><strong>${d.turnout_perc.toFixed(1)}%</strong></div>
-                    <div class="hp-col"><div class="hp-label">Valid</div><strong>${((d.valid_votes/(d.valid_votes+d.invalid_votes))*100 || 0).toFixed(1)}%</strong></div>
-                </div>
-                ${d.winner ? `<div class="hp-divider"></div><div class="hp-winner-content">
-                    <div class="hp-party-swatch" style="background:${d.winner.party_color || '#64748b'}"></div>
+        this._pinnedDistricts.push(d);
+        this._renderPinnedDistricts();
+    },
+
+    _renderPinnedDistricts() {
+        if (!this._comparePanel) return;
+        if (this._pinnedDistricts.length === 0) {
+            this._comparePanel.style.display = 'none';
+            return;
+        }
+
+        this._comparePanel.style.display = 'flex';
+        this._comparePanel.innerHTML = '';
+
+        this._pinnedDistricts.forEach((d, idx) => {
+            const card = document.createElement('div');
+            card.className = 'comparison-card';
+
+            const formatNum = (num) => (num || 0).toLocaleString();
+            const idc = d.id_cards_collected || 0;
+            const reg = d.registered_people || 1;
+            const idcP = ((idc / reg) * 100).toFixed(1);
+            const turnout = (d.valid_votes || 0) + (d.invalid_votes || 0);
+            const tnP = (d.turnout_perc || 0).toFixed(1);
+            const vv = d.valid_votes || 0;
+            const iv = d.invalid_votes || 0;
+            const tv = vv + iv;
+            const vvP = tv > 0 ? ((vv / tv) * 100).toFixed(1) : '0';
+            const ivP = tv > 0 ? ((iv / tv) * 100).toFixed(1) : '0';
+
+            const winnerHtml = d.winner ? `
+                <div class="hp-divider"></div>
+                <div class="hp-winner-content">
+                    <div class="hp-party-swatch" style="background:${d.winner.party_color || '#6b7280'}"></div>
                     <span class="hp-party-name">${d.winner.party_name}</span>
-                </div>` : ''}
-            </div>
-        `;
-        this._comparePanel.style.display = 'block';
-        this._comparePanel.querySelector('#cp-close').onclick = () => this._comparePanel.style.display = 'none';
+                    <span class="hp-party-seats">${d.winner.seats_won} seats</span>
+                </div>` : '';
+
+            card.innerHTML = `
+                <div class="cp-pin-header">
+                    <span class="cp-pin-title">${d.district_name}</span>
+                    <span class="cp-close" data-idx="${idx}">×</span>
+                </div>
+                <div class="hp-header" style="background:transparent; border:none; padding-bottom:0;">
+                    <div class="hp-row-top">
+                        <span class="hp-state-info" style="border:none; padding:0; margin:0;">${(d.state?.state_name) || ''}</span>
+                        <span class="hp-seats-badge">Seats: ${d.total_seats || 0}</span>
+                        <span class="hp-cat-badge">Cat: ${d.district_category || '—'}</span>
+                    </div>
+                </div>
+                <div class="hp-body" style="padding-top:5px;">
+                    <div class="hp-grid">
+                        <div class="hp-col"><div class="hp-label">Reg.</div><strong>${formatNum(reg)}</strong></div>
+                        <div class="hp-col"><div class="hp-label">Total Vote</div><strong>${formatNum(turnout)}</strong></div>
+                    </div>
+                    <div class="hp-grid mt-1">
+                        <div class="hp-col"><div class="hp-label">ID Coll. %</div><strong>${idcP}%</strong></div>
+                        <div class="hp-col"><div class="hp-label">Turnout %</div><strong>${tnP}%</strong></div>
+                    </div>
+                    <div class="hp-divider"></div>
+                    <div class="hp-grid">
+                        <div class="hp-col"><div class="hp-label">Valid %</div><strong>${vvP}%</strong></div>
+                        <div class="hp-col"><div class="hp-label">Invalid %</div><strong>${ivP}%</strong></div>
+                    </div>
+                    ${winnerHtml}
+                </div>
+            `;
+
+            card.querySelector('.cp-close').onclick = (e) => {
+                L.DomEvent.stopPropagation(e);
+                this._pinnedDistricts.splice(idx, 1);
+                this._renderPinnedDistricts();
+            };
+
+            this._comparePanel.appendChild(card);
+        });
     },
 
     _moveHoverPanel(e) {

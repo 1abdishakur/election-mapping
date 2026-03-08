@@ -1661,11 +1661,23 @@ a {
   pointer-events: none; /* User requested non-interactive */
 }
 
-/* Comparison Panel (Pinned) */
+/* Comparison Panel (Pinned Stack) */
 .comparison-panel {
   position: absolute;
   top: 60px;
   left: 20px;
+  width: auto;
+  max-height: calc(100% - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1100;
+  pointer-events: none; /* Let clicks pass to map if not on a card */
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+.comparison-card {
   width: 280px;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
@@ -1673,10 +1685,11 @@ a {
   border-left: 4px solid #fbbf24;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-  z-index: 1100;
-  display: none;
+  pointer-events: auto;
   animation: slideInLeft 0.3s ease-out;
+  flex-shrink: 0;
 }
+
 .cp-pin-header {
   background: #fffbeb;
   padding: 8px 12px;

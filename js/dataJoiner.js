@@ -137,6 +137,9 @@ export const DataJoiner = {
         // Compute Global Totals
         const summary = this.computeGlobalTotals(districtMaster, partiesLookup, normalizedTables);
 
+        console.log(`[DataJoiner] Total States in Sheet: ${normalizedTables.states?.length || 0}`);
+        console.log(`[DataJoiner] Total Districts in results: ${districtMaster.length}`);
+
         return { districtMaster, summary, parties: partiesLookup };
     },
 
@@ -355,8 +358,14 @@ export const DataJoiner = {
             votes_received: partyVotes[overallWinnerCode]
         } : null;
 
+        // Prioritize the actual states table for the count (dynamic from Google Sheets)
+        let totalStatesCount = uniqueStates.size;
+        if (fullTables && fullTables.states && Array.isArray(fullTables.states) && fullTables.states.length > 0) {
+            totalStatesCount = fullTables.states.length;
+        }
+
         return {
-            totalStates: (fullTables && fullTables.states && fullTables.states.length) ? fullTables.states.length : uniqueStates.size,
+            totalStates: totalStatesCount,
             totalDistricts: uniqueDistricts.size,
 
             candidates: {

@@ -55,30 +55,48 @@ export const MapModule = {
         (geoJSON.features || []).forEach(f => {
             const st = (f.properties.State || f.properties.state || '').trim();
             if (!st) return;
+            const geomType = f.geometry?.type;
+            if (geomType !== 'Polygon' && geomType !== 'MultiPolygon') return;
             if (!byState[st]) byState[st] = [];
-            byState[st].push(f);
+            // Create a clean copy — strip data properties that could cause issues with turf
+            const clean = turf.feature(f.geometry, { stateName: st });
+            byState[st].push(clean);
         });
 
         const stateFeatures = [];
         for (const [stateName, features] of Object.entries(byState)) {
             try {
-                // Merge all district polygons of this state into one outline
-                let merged = features[0];
-                for (let i = 1; i < features.length; i++) {
-                    try {
-                        merged = turf.union(
-                            turf.featureCollection([merged, features[i]])
-                        );
-                    } catch (e) {
-                        // If union fails for a pair, skip it
-                    }
+                let merged = null;
+                if (features.length === 1) {
+                    merged = features[0];
+                } else {
+                    // Try turf.union with FeatureCollection (Turf v7 API)
+                    merged = turf.union(turf.featureCollection(features));
                 }
                 if (merged) {
                     merged.properties = { stateName };
                     stateFeatures.push(merged);
                 }
             } catch (e) {
-                console.warn(`[Map] Could not dissolve state: ${stateName}`, e);
+                // Fallback: combine as MultiPolygon without dissolving
+                console.warn(`[Map] turf.union failed for ${stateName}, using MultiPolygon fallback`, e.message);
+                try {
+                    const coords = [];
+                    features.forEach(f => {
+                        if (f.geometry.type === 'Polygon') {
+                            coords.push(f.geometry.coordinates);
+                        } else if (f.geometry.type === 'MultiPolygon') {
+                            coords.push(...f.geometry.coordinates);
+                        }
+                    });
+                    if (coords.length > 0) {
+                        stateFeatures.push({
+                            type: 'Feature',
+                            properties: { stateName },
+                            geometry: { type: 'MultiPolygon', coordinates: coords }
+                        });
+                    }
+                } catch (e2) { /* skip this state entirely */ }
             }
         }
 

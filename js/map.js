@@ -17,6 +17,7 @@ export const MapModule = {
     _panelLocked: false,
     _pinnedDistricts: [],
     _stateColorMap: {},
+    _stateBordersLayer: null,
 
     // 12 vivid, maximally-distinct state border colors
     _STATE_PALETTE: [
@@ -36,6 +37,72 @@ export const MapModule = {
             }
         });
         console.log('[Map] State border colors:', this._stateColorMap);
+    },
+
+    // ── Build dissolved state outlines using Turf.js ──
+    _buildStateBorders(geoJSON) {
+        if (this._stateBordersLayer) {
+            this._stateBordersLayer.remove();
+            this._stateBordersLayer = null;
+        }
+        if (!window.turf) {
+            console.warn('[Map] Turf.js not loaded, skipping state borders');
+            return;
+        }
+
+        // Group features by state name
+        const byState = {};
+        (geoJSON.features || []).forEach(f => {
+            const st = (f.properties.State || f.properties.state || '').trim();
+            if (!st) return;
+            if (!byState[st]) byState[st] = [];
+            byState[st].push(f);
+        });
+
+        const stateFeatures = [];
+        for (const [stateName, features] of Object.entries(byState)) {
+            try {
+                // Merge all district polygons of this state into one outline
+                let merged = features[0];
+                for (let i = 1; i < features.length; i++) {
+                    try {
+                        merged = turf.union(
+                            turf.featureCollection([merged, features[i]])
+                        );
+                    } catch (e) {
+                        // If union fails for a pair, skip it
+                    }
+                }
+                if (merged) {
+                    merged.properties = { stateName };
+                    stateFeatures.push(merged);
+                }
+            } catch (e) {
+                console.warn(`[Map] Could not dissolve state: ${stateName}`, e);
+            }
+        }
+
+        if (stateFeatures.length === 0) return;
+
+        const stateGeoJSON = { type: 'FeatureCollection', features: stateFeatures };
+        this._stateBordersLayer = L.geoJSON(stateGeoJSON, {
+            style: f => {
+                const color = this._stateColorMap[f.properties.stateName] || '#6B7280';
+                return {
+                    fillColor: 'transparent',
+                    fillOpacity: 0,
+                    color: color,
+                    weight: 3,
+                    dashArray: null,
+                    interactive: false
+                };
+            },
+            interactive: false
+        }).addTo(this.map);
+
+        // Bring to front so it sits above district fills
+        this._stateBordersLayer.bringToFront();
+        console.log(`[Map] Built ${stateFeatures.length} state outlines`);
     },
 
     // ── Tile Layers ──────────────────────────────────────────
@@ -141,7 +208,11 @@ export const MapModule = {
         this.addToggleControl();
         this.addModeControl();
 
-        if (this.geoJSONLayer && this.geoJSONLayer.getBounds().isValid()) {
+        // ── Zoom to ONLY districts that have election data on launch ──
+        const dataBounds = this._getDataBounds(geoJSON);
+        if (dataBounds) {
+            this.map.fitBounds(dataBounds, { padding: [30, 30] });
+        } else if (this.geoJSONLayer && this.geoJSONLayer.getBounds().isValid()) {
             this.map.fitBounds(this.geoJSONLayer.getBounds(), { padding: [20, 20] });
         }
 
@@ -218,22 +289,29 @@ export const MapModule = {
     renderDistricts(geoJSON) {
         if (this.geoJSONLayer) this.geoJSONLayer.remove();
 
-        // Build the state→color map from the full GeoJSON State property
+        // Build the state→color map from ALL GeoJSON features
         this._buildStateColorMap(geoJSON);
 
-        // ── Only render districts that HAVE real election data ──
-        const dataJSON = {
-            type: 'FeatureCollection',
-            features: (geoJSON.features || []).filter(f => f.properties.data != null)
-        };
-
-        this.geoJSONLayer = L.geoJSON(dataJSON, {
+        // Render ALL districts — thin neutral borders, no-data = ghost
+        this.geoJSONLayer = L.geoJSON(geoJSON, {
             style: f => this.styleFeature(f),
             onEachFeature: (f, layer) => this.bindFeatureEvents(f, layer)
         }).addTo(this.map);
 
+        // Build dissolved state outlines on top
+        this._buildStateBorders(geoJSON);
+
         this.computeDynamicRanges();
         this.updateLegend();
+    },
+
+    // Returns LatLngBounds covering ONLY features that have real data
+    _getDataBounds(geoJSON) {
+        const dataFeatures = (geoJSON?.features || []).filter(f => f.properties.data != null);
+        if (dataFeatures.length === 0) return null;
+        const dataJSON = { type: 'FeatureCollection', features: dataFeatures };
+        const bounds = L.geoJSON(dataJSON).getBounds();
+        return bounds.isValid() ? bounds : null;
     },
 
     updateData() {
@@ -639,9 +717,9 @@ export const MapModule = {
             const fs = w >= 110 ? 12 : w >= 70 ? 11 : w >= 45 ? 9.5 : w >= 30 ? 8.5 : w >= 15 ? 7 : 5;
             const fsS = Math.max(fs - 1.5, 5);   // slightly smaller for seats/votes line
 
-            // Name: truncate or abbreviate when polygon is narrow
-            const name = d.district_name || '';
-            const dispName = w < 25 ? name.substring(0, 2) + '.' : w < 40 ? name.split(' ')[0].substring(0, 4) + '.' : w < 60 ? name.split(' ')[0] : name;
+            // Show district name from geojson 'name' field
+            const name = layer.feature?.properties?.name || d.district_name || '';
+            const dispName = name;
 
             // Build inner HTML — lines are added only if there’s vertical room
             let inner = `<div class="pl-name" style="font-size:${fs}px">${dispName}</div>`;
@@ -713,20 +791,29 @@ export const MapModule = {
     },
 
     styleFeature(feature) {
+        const hasData = feature.properties.data != null;
         const d = feature.properties.data || {};
+
+        // ── No-data districts: faint ghost ──
+        if (!hasData) {
+            return {
+                fillColor: '#94a3b8',
+                fillOpacity: 0.04,
+                color: 'rgba(148,163,184,0.3)',
+                weight: 0.5,
+                dashArray: '4 4'
+            };
+        }
+
         const color = this.getColor(d);
         const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
 
-        // Use state-specific border color so districts within the same state share a color
-        const stateName = (feature.properties.State || feature.properties.state || '').trim();
-        const stateBorderColor = this._stateColorMap[stateName] || '#6B7280';
-        const borderColor = isSelected ? '#fbbf24' : stateBorderColor;
-        
+        // District borders: thin neutral lines — state outlines are drawn by the separate layer
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: borderColor,
-            weight: isSelected ? 3.5 : 2,
+            color: isSelected ? '#fbbf24' : 'rgba(107,114,128,0.4)',
+            weight: isSelected ? 3 : 0.6,
             dashArray: null
         };
     },
@@ -768,6 +855,8 @@ export const MapModule = {
 
     bindFeatureEvents(feature, layer) {
         const d = feature.properties.data;
+        // Skip events for no-data ghost districts
+        if (!d) return;
         layer.on({
             mouseover: e => {
                 e.target.setStyle({ weight: 3, color: '#fbbf24', fillOpacity: 0.6 });
@@ -822,7 +911,26 @@ export const MapModule = {
                     weight: style.weight
                 });
 
-                marker.on('click', () => this._openCenterModal(c, d, type, isReg, isPoll));
+                marker.on('click', () => {
+                    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+                    const popupContent = `
+                        <div class="center-tooltip center-tooltip-${theme}">
+                            <div class="ct-header">
+                                <div class="ct-title">${c.center_name || 'Unknown Center'}</div>
+                                <div class="ct-tags">
+                                    ${isReg ? '<span class="ct-tag ct-tag-reg">Registration</span>' : ''}
+                                    ${isPoll ? '<span class="ct-tag ct-tag-poll">Polling</span>' : ''}
+                                </div>
+                            </div>
+                            <div class="ct-info">
+                                <div class="ct-row"><span>Polling Stations:</span> <b>${c.polling_stations_count || '0'}</b></div>
+                                <div class="ct-row"><span>District:</span> <b>${d.district_name || '—'}</b></div>
+                                <div class="ct-row ct-coords"><span>Lat:</span> ${parseFloat(c.latitude).toFixed(6)} <span>Lng:</span> ${parseFloat(c.longitude).toFixed(6)}</div>
+                            </div>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent, { closeButton: true, minWidth: 220, maxWidth: 320, className: 'center-tooltip-popup' }).openPopup();
+                });
                 markers.addLayer(marker);
             });
         });
@@ -999,23 +1107,8 @@ export const MapModule = {
     updateLegend() {
         if (this.legendControl) this.legendControl.remove();
 
-        // In default mode show the state border-color key
+        // In default mode, do not show the state border-color key
         if (this.currentMode === 'default') {
-            const stateEntries = Object.entries(this._stateColorMap);
-            if (stateEntries.length === 0) return;
-
-            const self = this;
-            this.legendControl = L.control({ position: 'bottomright' });
-            this.legendControl.onAdd = function () {
-                const div = L.DomUtil.create('div', 'info legend');
-                div.innerHTML = `<strong style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;">States</strong>`;
-                stateEntries.forEach(([name, color]) => {
-                    div.innerHTML += `<br><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:${color};margin-right:6px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,0.3);"></span>${name}`;
-                });
-                div.innerHTML += `<div style="margin-top:6px;font-size:9.5px;opacity:0.6;">Border color = State</div>`;
-                return div;
-            };
-            this.legendControl.addTo(this.map);
             return;
         }
 

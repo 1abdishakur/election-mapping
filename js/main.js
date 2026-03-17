@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=159';
-import { DataJoiner } from './dataJoiner.js?v=159';
-import { MapModule } from './map.js?v=159';
-import { ChartsModule } from './charts.js?v=159';
-import { UIController } from './ui.js?v=159';
+import { DataLoader } from './dataLoader.js?v=161';
+import { DataJoiner } from './dataJoiner.js?v=161';
+import { MapModule } from './map.js?v=161';
+import { ChartsModule } from './charts.js?v=161';
+import { UIController } from './ui.js?v=161';
 
 /** Central Application State */
 const AppState = {
@@ -102,6 +102,15 @@ class ElectionDashboard {
     async refreshData() {
         // Minimal background fetch
         try {
+            // Track how many states had data BEFORE refresh
+            const prevDataStates = new Set();
+            (this.geoJSON?.features || []).forEach(f => {
+                if (f.properties.data != null) {
+                    const st = f.properties.State || f.properties.state || '';
+                    if (st) prevDataStates.add(st.trim());
+                }
+            });
+
             const rawTables = await DataLoader.loadAllTables();
             this.allTables = rawTables;
             
@@ -115,6 +124,24 @@ class ElectionDashboard {
 
             // Notify map to update its visuals and properties without re-adding borders
             MapModule.updateData();
+
+            // Check if NEW states appeared with data
+            const newDataStates = new Set();
+            (this.geoJSON?.features || []).forEach(f => {
+                if (f.properties.data != null) {
+                    const st = f.properties.State || f.properties.state || '';
+                    if (st) newDataStates.add(st.trim());
+                }
+            });
+
+            if (newDataStates.size > prevDataStates.size) {
+                // New states appeared — zoom to cover all data-having areas
+                const dataBounds = MapModule._getDataBounds(this.geoJSON);
+                if (dataBounds) {
+                    MapModule.map.fitBounds(dataBounds, { padding: [30, 30] });
+                    console.log(`[App] New states detected (${prevDataStates.size} → ${newDataStates.size}), re-zooming to data bounds`);
+                }
+            }
 
             // Notify dashboard to reapply its state
             this.reapplyState();

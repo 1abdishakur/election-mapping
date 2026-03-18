@@ -408,7 +408,7 @@ export const UIController = {
         }
     },
 
-    updateDistrictDetailPanel(d) {
+    updateDistrictDetailPanel(d, title, subtitle, badge) {
         const ddp = document.getElementById('district-details-container');
         if (!d) {
             if (ddp) ddp.style.display = 'none';
@@ -418,31 +418,43 @@ export const UIController = {
         const fmt = (n, p = 0) => (typeof n === 'number' && !isNaN(n)) ? n.toLocaleString(undefined, { minimumFractionDigits: p, maximumFractionDigits: p }) : '—';
         const fmtPct = n => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(1) + '%' : '—';
 
+        // Support both raw district and summary object
+        const reg = d.registered_people != null ? d.registered_people : d.totalRegistered;
+        const idCol = d.id_cards_collected != null ? d.id_cards_collected : d.totalIdCards;
+        const turnPct = d.turnout_perc != null ? d.turnout_perc : d.turnoutPct;
+        const valid = d.valid_votes != null ? d.valid_votes : d.totalVotes;
+        const inv = d.invalid_votes != null ? d.invalid_votes : d.totalInvalid;
+        const invPct = d.invalid_perc != null ? d.invalid_perc : d.invalidPct;
+        const totalV = d.total_votes != null ? d.total_votes : d.turnoutVotes;
+        
+        const centers = (d.operations?.polling_centers_used != null) ? d.operations.polling_centers_used : (d.opStats?.centers || 0);
+        const stations = (d.operations?.polling_stations_used != null) ? d.operations.polling_stations_used : (d.opStats?.stations || 0);
+        const staff = d.staffStats ? (d.staffStats.reg + d.staffStats.id + d.staffStats.day) : ((d.operations?.registration_staff_used || 0) + (d.operations?.id_distribution_staff_used || 0) + (d.operations?.election_day_staff_used || 0));
+
         // Header
-        this._set('dd-name', d.district_name);
-        this._set('dd-category', d.district_category || '—');
-        this._set('dd-state', d.state?.state_name || '—');
+        this._set('dd-name', title || d.district_name || 'All Districts');
+        this._set('dd-category', badge || d.district_category || 'Sum');
+        this._set('dd-state', subtitle || d.state?.state_name || 'Overview');
 
         // Stats
-        this._set('dd-reg', fmt(d.registered_people));
-        this._set('dd-id', fmt(d.id_cards_collected));
-        this._set('dd-turnout', fmtPct(d.turnout_perc));
+        this._set('dd-reg', fmt(reg));
+        this._set('dd-id', fmt(idCol));
+        this._set('dd-turnout', fmtPct(turnPct));
         this._set('dd-rank', d.ranks?.turnout ? `#${d.ranks.turnout}` : '—');
 
         // Breakdown
-        this._set('dd-valid', fmt(d.valid_votes));
-        this._set('dd-invalid', fmt(d.invalid_votes));
-        this._set('dd-invalid-perc', fmtPct(d.invalid_perc));
-        this._set('dd-total-cast', fmt(d.total_votes));
+        this._set('dd-valid', fmt(valid));
+        this._set('dd-invalid', fmt(inv));
+        this._set('dd-invalid-perc', fmtPct(invPct));
+        this._set('dd-total-cast', fmt(totalV));
 
         // Ops
-        this._set('dd-centers', fmt(d.operations?.polling_centers_used));
-        this._set('dd-stations', fmt(d.operations?.polling_stations_used));
-        const staff = (d.operations?.registration_staff_used || 0) + (d.operations?.id_distribution_staff_used || 0) + (d.operations?.election_day_staff_used || 0);
+        this._set('dd-centers', fmt(centers));
+        this._set('dd-stations', fmt(stations));
         this._set('dd-staff', fmt(staff));
 
         // Winner
-        const w = d.winner;
+        const w = d.winner || d.overallWinner;
         const box = document.getElementById('dd-winner-box');
         if (w) {
             const logo = document.getElementById('dd-winner-logo');
@@ -457,12 +469,45 @@ export const UIController = {
             if (box) box.style.borderLeft = 'none';
         }
 
+        // Elected Candidates List
+        const listContainer = document.getElementById('dd-candidates-list');
+        if (listContainer) {
+            const winners = (d.winners || []).sort((a, b) => a.seat_number - b.seat_number);
+            if (winners.length > 0) {
+                let html = `<table class="dd-candidates-table">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Candidate Name</th>
+                            <th>Party</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                winners.forEach(w => {
+                    html += `<tr>
+                        <td>${w.seat_number || '—'}</td>
+                        <td class="cand-name">${w.elected_candidates || '—'}</td>
+                        <td>
+                            <div class="cand-party">
+                                <span class="party-dot" style="background:${w.party_color || '#ccc'}"></span>
+                                ${w.party_name || '—'}
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                listContainer.innerHTML = html;
+            } else {
+                listContainer.innerHTML = '<div class="dd-empty-msg">No candidate data available for this selection.</div>';
+            }
+        }
+
         if (ddp) {
             ddp.style.display = 'flex';
             // Smooth scroll into view
             setTimeout(() => {
                 ddp.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }, 100);
+            }, 300);
         }
     }
 };

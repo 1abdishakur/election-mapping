@@ -284,6 +284,13 @@
             </div>
         </div>
 
+
+
+        <footer class="footer">
+            <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL
+                COMMISSION</span>
+        </footer>
+
         <!-- ── DISTRICT DETAILS PANEL (Full Width) ─────────── -->
         <section id="district-details-container" class="district-details-section" style="display:none;">
             <div class="dd-header">
@@ -338,13 +345,17 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Group 5: Elected Candidates -->
+                <div class="dd-card dd-candidates-card">
+                    <div class="dd-card-label">Elected Candidates</div>
+                    <div class="dd-candidates-list" id="dd-candidates-list">
+                        <!-- Table injected by JS -->
+                        <div class="dd-empty-msg">No candidate data available for this selection.</div>
+                    </div>
+                </div>
             </div>
         </section>
-
-        <footer class="footer">
-            <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL
-                COMMISSION</span>
-        </footer>
 
         <!-- MOBILE FAB (Visible only on small screens via CSS) -->
         <div class="mobile-fab-container">

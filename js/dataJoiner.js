@@ -12,7 +12,7 @@ export const DataJoiner = {
         const normalizedTables = this.normalize(tables);
 
         // Map tables for easier access
-        const { states, districts, party_results, election_operations, centers } = normalizedTables;
+        const { states, districts, party_results, election_operations, centers, elected_candidates } = normalizedTables;
 
         // Create lookups — trim keys to handle whitespace in CSV
         const statesLookup = states.reduce((acc, s) => { acc[String(s.state_code).trim()] = s; return acc; }, {});
@@ -91,6 +91,20 @@ export const DataJoiner = {
 
             // Join Centers
             district.centers = centers.filter(c => (c.dist_code || c.district_code) === districtCode);
+
+            // Join Elected Candidates
+            district.winners = (elected_candidates || [])
+                .filter(ec => String(ec.district_code).trim() === String(districtCode).trim())
+                .map(ec => {
+                    const pc = String(ec.party_code).trim();
+                    const party = partiesLookup[pc] || {};
+                    return {
+                        ...ec,
+                        party_name: party.party_name || pc,
+                        party_color: party.party_color,
+                        party_logo_url: party.party_logo_url || ''
+                    };
+                });
 
             // Determine Winning Party for this district (by seats_won or votes_received as fallback)
             district.winner = this.getWinningParty(district.party_results);
@@ -241,7 +255,8 @@ export const DataJoiner = {
                 reg: staff.registration_staff_used || 0,
                 id: staff.id_distribution_staff_used || 0,
                 day: staff.election_day_staff_used || 0
-            }
+            },
+            winners: district.winners || []
         };
     },
 
@@ -256,7 +271,7 @@ export const DataJoiner = {
             'female_seats_won', 'male_seats_won', 'polling_stations_count',
             'registration_centers_used', 'registration_kits_used', 'polling_centers_used', 'polling_stations_used',
             'registration_staff_used', 'id_distribution_staff_used', 'election_day_staff_used',
-            'latitude', 'longitude'
+            'latitude', 'longitude', 'seat_number'
         ];
 
         // Deep copy and normalize headers + values
@@ -322,6 +337,7 @@ export const DataJoiner = {
         const partyVotes = {};
         const partySeats = {};
         const partyDetails = {}; // Track gendered seats globally
+        const allWinners = [];
 
         districtMaster.forEach(d => {
             if (d.state_code) uniqueStates.add(d.state_code);
@@ -357,6 +373,8 @@ export const DataJoiner = {
                 const isContested = String(pr.is_contested).trim().toUpperCase() === 'TRUE';
                 if (isContested) contestedPartiesSet.add(pc);
             });
+
+            if (d.winners) allWinners.push(...d.winners);
         });
 
         let pollingCentersCount = 0;
@@ -428,7 +446,8 @@ export const DataJoiner = {
             overallTurnout: turnoutPct,
             partyVotes,
             partySeats,
-            partyDetails
+            partyDetails,
+            winners: allWinners
         };
     },
 

@@ -12,7 +12,8 @@ export const CONFIG = {
         districts: 'districts',
         party_results: 'party_results',
         election_operations: 'election_operations',
-        centers: 'centers'
+        centers: 'centers',
+        elected_candidates: 'elected_candidates'
     },
 
     GEOJSON_PATH: 'data/districts.geojson',

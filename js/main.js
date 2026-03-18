@@ -196,7 +196,9 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(label, modeLabel);
-        UIController.updateDistrictDetailPanel(null);
+        
+        // Show State/National aggregate data in the bottom panel
+        UIController.updateDistrictDetailPanel(summary, label, code === 'all' ? 'NATIONAL' : `STATE — ${code}`, 'SUMMARY');
     }
 
     onDistrictChange(code) {
@@ -216,7 +218,9 @@ class ElectionDashboard {
             const sel = document.getElementById('choropleth-mode');
             const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
             UIController.setContext('State Overview', modeLabel);
-            UIController.updateDistrictDetailPanel(null);
+            
+            // Re-show state summary in the bottom panel when reverting from district to state view
+            UIController.updateDistrictDetailPanel(summary, `${AppState.selectedState} State View`, AppState.selectedState, 'SUMMARY');
             return;
         }
 
@@ -371,7 +375,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(district.district_name, modeLabel);
-        UIController.updateDistrictDetailPanel(district);
+        UIController.updateDistrictDetailPanel(district, district.district_name, district.state?.state_name, `CAT ${district.district_category || '—'}`);
     }
 
     updatePartyList(summary, isDistrictLevel = false) {

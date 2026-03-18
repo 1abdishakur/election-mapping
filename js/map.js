@@ -70,16 +70,19 @@ export const MapModule = {
                 if (features.length === 1) {
                     merged = features[0];
                 } else {
-                    // Try turf.union with FeatureCollection (Turf v7 API)
-                    merged = turf.union(turf.featureCollection(features));
+                    const buffered = features.map(f => turf.buffer(f, 0.001, { units: 'kilometers' }));
+                    merged = turf.union(turf.featureCollection(buffered));
+                    if (merged) {
+                        merged = turf.buffer(merged, -0.0001, { units: 'kilometers' });
+                    }
                 }
+                
                 if (merged) {
                     merged.properties = { stateName };
                     stateFeatures.push(merged);
                 }
             } catch (e) {
-                // Fallback: combine as MultiPolygon without dissolving
-                console.warn(`[Map] turf.union failed for ${stateName}, using MultiPolygon fallback`, e.message);
+                console.warn(`[Map] Dissolve failed for ${stateName}, trying raw fallback`);
                 try {
                     const coords = [];
                     features.forEach(f => {
@@ -96,7 +99,9 @@ export const MapModule = {
                             geometry: { type: 'MultiPolygon', coordinates: coords }
                         });
                     }
-                } catch (e2) { /* skip this state entirely */ }
+                } catch (e2) { 
+                    /* skip total failure */ 
+                }
             }
         }
 
@@ -110,8 +115,8 @@ export const MapModule = {
                     fillColor: 'transparent',
                     fillOpacity: 0,
                     color: color,
-                    weight: 4,
-                    dashArray: '2, 6',
+                    weight: 6,
+                    dashArray: '2, 8',
                     interactive: false,
                     lineJoin: 'round',
                     lineCap: 'round'
@@ -865,8 +870,8 @@ export const MapModule = {
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: isSelected ? '#fbbf24' : 'rgba(255, 255, 255, 0.5)',
-            weight: isSelected ? 3 : 0.4,
+            color: isSelected ? '#fbbf24' : 'rgba(255, 255, 255, 0.45)',
+            weight: isSelected ? 3 : 1.2,
             dashArray: null
         };
     },

@@ -851,14 +851,18 @@ export const MapModule = {
     styleFeature(feature) {
         const hasData = feature.properties.data != null;
         const d = feature.properties.data || {};
+        
+        // Match district border color to its state's dotted border color
+        const st = (feature.properties.State || feature.properties.state || '').trim();
+        const stateColor = this._stateColorMap[st] || 'rgba(255, 255, 255, 0.45)';
 
         // ── No-data districts: faint ghost ──
         if (!hasData) {
             return {
                 fillColor: '#94a3b8',
                 fillOpacity: 0.04,
-                color: 'rgba(148,163,184,0.3)',
-                weight: 0.5,
+                color: stateColor,
+                weight: 0.8,
                 dashArray: '4 4'
             };
         }
@@ -866,11 +870,11 @@ export const MapModule = {
         const color = this.getColor(d);
         const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
 
-        // District borders: thin neutral lines — state outlines are drawn by the separate layer
+        // District borders: now use the same vivid color as the state's outer dotted line
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: isSelected ? '#fbbf24' : 'rgba(255, 255, 255, 0.45)',
+            color: isSelected ? '#fbbf24' : stateColor,
             weight: isSelected ? 3 : 1.2,
             dashArray: null
         };

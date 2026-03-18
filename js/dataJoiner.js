@@ -94,7 +94,11 @@ export const DataJoiner = {
 
             // Join Elected Candidates
             district.winners = (elected_candidates || [])
-                .filter(ec => String(ec.district_code).trim() === String(districtCode).trim())
+                .filter(ec => {
+                    const ecCode = String(ec.district_code || ec.dist_code || '').trim().toUpperCase();
+                    const dCode = String(districtCode || '').trim().toUpperCase();
+                    return ecCode === dCode && ecCode !== '';
+                })
                 .map(ec => {
                     const pc = String(ec.party_code).trim();
                     const party = partiesLookup[pc] || {};

@@ -206,7 +206,7 @@ export const UIController = {
         const statCand = document.getElementById('stat-candidates-gender');
         if (statCand) {
             statCand.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">
                     <div>M: ${fmtPct(data.candidates.malePct)}</div>
                     <div>F: ${fmtPct(data.candidates.femalePct)}</div>
@@ -222,7 +222,7 @@ export const UIController = {
             const vpsText = (isSpecific && vps > 0) ? `${fmt(Math.round(vps))} / Seat` : '—';
 
             statParties.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">${vpsText}</div>
             `;
             this._animateNumber(statParties.querySelector('.kpi-main-val'), data.contestedPartiesCount);
@@ -232,7 +232,7 @@ export const UIController = {
         const statReg = document.getElementById('stat-registered');
         if (statReg) {
             statReg.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">—</div>
             `;
             this._animateNumber(statReg.querySelector('.kpi-main-val'), data.totalRegistered);
@@ -242,7 +242,7 @@ export const UIController = {
         const statId = document.getElementById('stat-id-cards');
         if (statId) {
             statId.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">${fmtPct(data.idCollectedPct)}</div>
             `;
             this._animateNumber(statId.querySelector('.kpi-main-val'), data.totalIdCards);
@@ -252,7 +252,7 @@ export const UIController = {
         const statTurnout = document.getElementById('stat-turnout');
         if (statTurnout) {
             statTurnout.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">${fmtPct(data.turnoutPct)}</div>
             `;
             this._animateNumber(statTurnout.querySelector('.kpi-main-val'), data.turnoutVotes);
@@ -262,7 +262,7 @@ export const UIController = {
         const statValid = document.getElementById('stat-votes-valid');
         if (statValid) {
             statValid.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub">${fmtPct(data.validPct)}</div>
             `;
             this._animateNumber(statValid.querySelector('.kpi-main-val'), data.totalVotes);
@@ -272,7 +272,7 @@ export const UIController = {
         const statInvalid = document.getElementById('stat-votes-invalid');
         if (statInvalid) {
             statInvalid.innerHTML = `
-                <div class="kpi-main-val">0</div>
+                <div class="kpi-main-val">—</div>
                 <div class="kpi-sub" style="color:var(--c-danger); font-weight:700;">${fmtPct(data.invalidPct)}</div>
             `;
             this._animateNumber(statInvalid.querySelector('.kpi-main-val'), data.totalInvalid);

@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=161';
-import { DataJoiner } from './dataJoiner.js?v=161';
-import { MapModule } from './map.js?v=161';
-import { ChartsModule } from './charts.js?v=161';
-import { UIController } from './ui.js?v=161';
+import { DataLoader } from './dataLoader.js?v=162';
+import { DataJoiner } from './dataJoiner.js?v=162';
+import { MapModule } from './map.js?v=162';
+import { ChartsModule } from './charts.js?v=162';
+import { UIController } from './ui.js?v=162';
 
 /** Central Application State */
 const AppState = {
@@ -151,12 +151,15 @@ class ElectionDashboard {
     }
 
     reapplyState() {
-        // Find current context layer
         if (AppState.selectedDistrict !== 'all') {
+            // Re-activate the focused district with fresh data
             const d = this.masterData.find(x => (x.district_code || x.dist_code) === AppState.selectedDistrict);
             if (d) {
-                // If focused on a district, update only the mini panel but preserve the state of things
-                UIController.updateMiniPanel(d);
+                const summary = DataJoiner.districtToSummary(d);
+                UIController.updateKPIs(summary, true);
+                UIController.updateMiniPanel(summary);
+                ChartsModule.update(summary, this.parties);
+                this.updatePartyList(summary, true);
             }
         } else {
             // Apply global or state calculations
@@ -224,8 +227,16 @@ class ElectionDashboard {
         MapModule.setMode(mode);
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
-        let contextText = AppState.selectedDistrict !== 'all' ? document.getElementById('panel-context').textContent.split(' — ')[1] || document.getElementById('panel-context').textContent :
-            AppState.selectedState !== 'all' ? `${AppState.selectedState} — State View` : 'National Overview';
+
+        let contextText;
+        if (AppState.selectedDistrict !== 'all') {
+            const d = this.masterData.find(x => (x.district_code || x.dist_code) === AppState.selectedDistrict);
+            contextText = d ? d.district_name : 'District View';
+        } else if (AppState.selectedState !== 'all') {
+            contextText = `${AppState.selectedState} — State View`;
+        } else {
+            contextText = 'National Overview';
+        }
         UIController.setContext(contextText, modeLabel);
     }
 

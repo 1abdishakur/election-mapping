@@ -347,12 +347,21 @@ export const MapModule = {
         // 4. Update the polygon text labels seamlessly
         this.updateLabels();
         
-        // 5. Update Hover/Active Info card if currently open and locked
+        // 5. If the hover panel is locked open, refresh its content from updated data
         if (this._panelLocked && this.selectedDistrictCode) {
             this.geoJSONLayer.eachLayer(layer => {
-                const props = layer.feature?.properties?.data;
-                const match = props && (props.dist_code === this.selectedDistrictCode || props.district_code === this.selectedDistrictCode);
-                if (match) this.showDistrictFocus(this.selectedDistrictCode);
+                const d = layer.feature?.properties?.data;
+                const match = d && (d.dist_code === this.selectedDistrictCode || d.district_code === this.selectedDistrictCode);
+                if (match) {
+                    // Re-render the hover panel with fresh data
+                    const fakeEvent = { originalEvent: { clientX: 0, clientY: 0 } };
+                    const panelRect = this._hoverPanel?.getBoundingClientRect();
+                    if (panelRect) {
+                        fakeEvent.originalEvent.clientX = panelRect.left + panelRect.width / 2;
+                        fakeEvent.originalEvent.clientY = panelRect.top + panelRect.height / 2;
+                    }
+                    this._showHoverPanel(d, fakeEvent);
+                }
             });
         }
     },
@@ -412,6 +421,16 @@ export const MapModule = {
 
                     const viewRect = L.rectangle(self.map.getBounds(), { color: "#ef4444", weight: 1.5, fillOpacity: 0, interactive: false }).addTo(mm);
                     self.map.on('move', () => viewRect.setBounds(self.map.getBounds()));
+
+                    // Sync mini-map tile with theme
+                    window.addEventListener('themeChanged', e => {
+                        const theme = e.detail;
+                        mm.eachLayer(l => { if (l instanceof L.TileLayer) mm.removeLayer(l); });
+                        L.tileLayer(theme === 'dark' 
+                            ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png' 
+                            : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+                        ).addTo(mm);
+                    });
                 }, 200);
                 return container;
             }
@@ -758,10 +777,11 @@ export const MapModule = {
                             statText = `${formatNum(idc)} (${icp.toFixed(1)}%)`;
                             break;
                         }
-                        case 'turnout':
+                        case 'turnout': {
                             const tVal = (d.valid_votes || 0) + (d.invalid_votes || 0);
                             statText = `${formatNum(tVal)} (${(d.turnout_perc || 0).toFixed(1)}%)`;
                             break;
+                        }
                         case 'votes': {
                             const vv = d.valid_votes || 0;
                             const tv = vv + (d.invalid_votes || 0);
@@ -784,7 +804,7 @@ export const MapModule = {
                 const seats = pr.seats_won || 0;
                 const total = d.total_seats || 1;
                 const pct = total > 0 ? Math.round((seats / total) * 100) : 0;
-                inner += `<div class="pl-seats" style="font-size:${fsS}px" style="color:#111827">${seats} seat${seats !== 1 ? 's' : ''} (${pct}%)</div>`;
+                inner += `<div class="pl-seats" style="font-size:${fsS}px;color:#111827">${seats} seat${seats !== 1 ? 's' : ''} (${pct}%)</div>`;
                 if (h >= 32) {
                     const votes = (pr.votes_received || 0).toLocaleString();
                     inner += `<div class="pl-votes" style="font-size:${Math.max(fsS - 1, 5)}px">${votes} votes</div>`;
@@ -919,7 +939,6 @@ export const MapModule = {
                 const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
                 const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
                 const style = this._getCenterStyle(isReg, isPoll);
-                const type = isReg && isPoll ? 'Registration & Polling' : isReg ? 'Registration' : 'Polling';
 
                 const marker = L.circleMarker([lat, lng], {
                     radius: 6,
@@ -929,26 +948,7 @@ export const MapModule = {
                     weight: style.weight
                 });
 
-                marker.on('click', () => {
-                    const theme = document.documentElement.getAttribute('data-theme') || 'light';
-                    const popupContent = `
-                        <div class="center-tooltip center-tooltip-${theme}">
-                            <div class="ct-header">
-                                <div class="ct-title">${c.center_name || 'Unknown Center'}</div>
-                                <div class="ct-tags">
-                                    ${isReg ? '<span class="ct-tag ct-tag-reg">Registration</span>' : ''}
-                                    ${isPoll ? '<span class="ct-tag ct-tag-poll">Polling</span>' : ''}
-                                </div>
-                            </div>
-                            <div class="ct-info">
-                                <div class="ct-row"><span>Polling Stations:</span> <b>${c.polling_stations_count || '0'}</b></div>
-                                <div class="ct-row"><span>District:</span> <b>${d.district_name || '—'}</b></div>
-                                <div class="ct-row ct-coords"><span>Lat:</span> ${parseFloat(c.latitude).toFixed(6)} <span>Lng:</span> ${parseFloat(c.longitude).toFixed(6)}</div>
-                            </div>
-                        </div>
-                    `;
-                    marker.bindPopup(popupContent, { closeButton: true, minWidth: 220, maxWidth: 320, className: 'center-tooltip-popup' }).openPopup();
-                });
+                marker.on('click', () => this._openCenterModal(c, d, isReg, isPoll));
                 markers.addLayer(marker);
             });
         });
@@ -981,13 +981,12 @@ export const MapModule = {
                     const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
                     const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
                     const style = this._getCenterStyle(isReg, isPoll);
-                    const type = isReg && isPoll ? 'Registration & Polling' : isReg ? 'Registration' : 'Polling';
 
                     const marker = L.circleMarker([lat, lng], {
                         radius: 8, fillColor: style.fillColor, fillOpacity: 0.95,
                         color: style.color, weight: style.weight
                     });
-                    marker.on('click', () => this._openCenterModal(c, d, type, isReg, isPoll));
+                    marker.on('click', () => this._openCenterModal(c, d, isReg, isPoll));
                     markers.push(marker);
                 });
             }
@@ -1000,7 +999,7 @@ export const MapModule = {
         }
     },
 
-    _openCenterModal(c, d, type, isReg, isPoll) {
+    _openCenterModal(c, d, isReg, isPoll) {
         const existing = document.getElementById('center-detail-modal');
         if (existing) existing.remove();
 
@@ -1056,6 +1055,8 @@ export const MapModule = {
 
     showDistrictFocus(districtCode) {
         this.selectedDistrictCode = districtCode;
+        // Clear any pending hide timer so the hover panel isn't dismissed
+        if (this._hideTimer) { clearTimeout(this._hideTimer); this._hideTimer = null; }
         if (!this.geoJSONLayer) return;
 
         let targetLayer = null;
@@ -1092,7 +1093,13 @@ export const MapModule = {
         this.selectedDistrictCode = null; // Clear focus on state change
         const filtered = stateCode === 'all' ? geoJSON : {
             ...geoJSON,
-            features: geoJSON.features.filter(f => f.properties.data?.state_code === stateCode)
+            features: geoJSON.features.filter(f => {
+                // Match by State property name (works for both data and no-data districts)
+                const st = (f.properties.State || f.properties.state || '').trim();
+                // Also try matching by state_code on data if present
+                const dataStateCode = f.properties.data?.state_code;
+                return st === stateCode || dataStateCode === stateCode;
+            })
         };
         this.renderDistricts(filtered);
         if (this.geoJSONLayer.getBounds().isValid()) {
@@ -1113,9 +1120,6 @@ export const MapModule = {
         this._activePartyCode = null;
         if (this.geoJSONLayer) {
             this.geoJSONLayer.setStyle(f => this.styleFeature(f));
-        }
-        if (this.partyLabelsLayer) {
-            this.partyLabelsLayer.clearLayers();
         }
         // Redraw labels without party data
         this.updateLabels();
@@ -1254,8 +1258,8 @@ export const MapModule = {
         const confirmBtn = document.getElementById('confirm-export');
 
         const closeModal = () => modal.style.display = 'none';
-        closeBtn.onclick = closeModal;
-        cancelBtn.onclick = closeModal;
+        if (closeBtn) closeBtn.onclick = closeModal;
+        if (cancelBtn) cancelBtn.onclick = closeModal;
 
         // Size & Orientation Selection
         const sizeBtns = modal.querySelectorAll('.size-btn');
@@ -1274,7 +1278,7 @@ export const MapModule = {
             };
         });
 
-        confirmBtn.onclick = async () => {
+        if (confirmBtn) confirmBtn.onclick = async () => {
             const size = modal.querySelector('.size-btn.selected')?.dataset.size || 'a4';
             const orientation = modal.querySelector('.orient-btn.selected')?.dataset.orient || 'portrait';
             const showLegend = document.getElementById('export-show-legend').checked;

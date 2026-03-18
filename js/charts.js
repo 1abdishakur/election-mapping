@@ -175,6 +175,7 @@ export const ChartsModule = {
     },
 
     _multiBar(id) {
+        const self = this;
         return new Chart(document.getElementById(id), {
             type: 'bar',
             data: { labels: [], datasets: [] },
@@ -190,7 +191,7 @@ export const ChartsModule = {
                     legend: {
                         display: true,
                         position: 'bottom',
-                        labels: { boxWidth: 8, padding: 20, font: { size: 10, weight: '700' }, color: () => this.textColor }
+                        labels: { boxWidth: 8, padding: 20, font: { size: 10, weight: '700' }, color: () => self.textColor }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',

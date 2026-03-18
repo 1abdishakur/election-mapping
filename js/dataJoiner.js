@@ -311,6 +311,9 @@ export const DataJoiner = {
         let totalFemaleWinners = 0;
         let totalMaleWinners = 0;
         let totalPollingStations = 0;
+        let totalRegStaff = 0;
+        let totalIdStaff = 0;
+        let totalDayStaff = 0;
 
         const uniqueStates = new Set();
         const uniqueDistricts = new Set();
@@ -330,6 +333,9 @@ export const DataJoiner = {
             totalInvalid += (d.invalid_votes || 0);
             totalSeats += (d.total_seats || 0);
             totalPollingStations += (d.operations.polling_stations_used || 0);
+            totalRegStaff += (d.operations.registration_staff_used || 0);
+            totalIdStaff += (d.operations.id_distribution_staff_used || 0);
+            totalDayStaff += (d.operations.election_day_staff_used || 0);
 
             d.party_results.forEach(pr => {
                 const pc = pr.party_code;
@@ -418,7 +424,7 @@ export const DataJoiner = {
                 femaleWinners: totalFemaleWinners
             },
             opStats: { centers: pollingCentersCount, stations: totalPollingStations },
-            staffStats: { reg: 0, id: 0, day: 0 },
+            staffStats: { reg: totalRegStaff, id: totalIdStaff, day: totalDayStaff },
             overallTurnout: turnoutPct,
             partyVotes,
             partySeats,

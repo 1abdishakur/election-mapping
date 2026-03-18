@@ -62,6 +62,15 @@
   --btn-sec-text: #E5E7EB;
 }
 
+/* ── Desktop-First Layout Adjustments ─────────────────── */
+@media (max-width: 1400px) {
+  :root {
+    --sidebar-w: 220px;
+    --charts-w: 280px;
+  }
+}
+
+
 
 
 /* ── Reset ─────────────────────────────────────────────── */
@@ -2110,5 +2119,54 @@ a {
   display: flex;
   gap: 12px;
 }
+
+/* ════════════════════════════════════════════════════════
+   MOBILE FAB & UTILS
+   ════════════════════════════════════════════════════════ */
+.mobile-fab-container {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fab-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.fab-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+.fab-btn:active {
+  transform: scale(0.92);
+}
+
+#mobile-menu-toggle { background: var(--c-primary); }
+#mobile-toggle-parties { background: var(--c-accent); }
+#mobile-toggle-charts { background: var(--c-purple); }
+
+@media (max-width: 900px) {
+  .mobile-fab-container {
+    display: flex;
+  }
+}
+
 
 

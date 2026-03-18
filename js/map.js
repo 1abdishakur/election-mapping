@@ -110,9 +110,11 @@ export const MapModule = {
                     fillColor: 'transparent',
                     fillOpacity: 0,
                     color: color,
-                    weight: 3,
-                    dashArray: null,
-                    interactive: false
+                    weight: 4,
+                    dashArray: '2, 6',
+                    interactive: false,
+                    lineJoin: 'round',
+                    lineCap: 'round'
                 };
             },
             interactive: false
@@ -863,8 +865,8 @@ export const MapModule = {
         return {
             fillColor: color,
             fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
-            color: isSelected ? '#fbbf24' : 'rgba(107,114,128,0.4)',
-            weight: isSelected ? 3 : 0.6,
+            color: isSelected ? '#fbbf24' : 'rgba(255, 255, 255, 0.5)',
+            weight: isSelected ? 3 : 0.4,
             dashArray: null
         };
     },

@@ -1448,6 +1448,171 @@ a {
    FOOTER
 ════════════════════════════════════════════════════════*/
 /* ── Footer ────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════
+   DISTRICT DETAILS PANEL
+   ════════════════════════════════════════════════════════ */
+.district-details-section {
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  padding: 16px 24px;
+  animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+[data-theme="dark"] .district-details-section {
+    background: var(--c-surface-2);
+}
+
+.dd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dd-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dd-badge {
+  background: var(--c-primary);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dd-title h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-text);
+  margin: 0;
+}
+
+.dd-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.close-dd-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--c-text-3);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.close-dd-btn:hover { color: var(--c-danger); }
+
+.dd-content {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.dd-card {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dd-card-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--c-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dd-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dd-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.dd-stat span { color: var(--c-text-2); font-weight: 600; }
+.dd-stat strong { color: var(--c-text); font-weight: 750; }
+
+.dd-perc {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-danger);
+  margin-left: 6px;
+}
+
+.dd-winner-card {
+  background: linear-gradient(135deg, rgba(var(--c-surface-rgb), 0), rgba(255, 215, 0, 0.05));
+  border-color: var(--c-warn);
+}
+
+.dd-winner-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.dd-winner-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--c-surface);
+  box-shadow: var(--shadow);
+  object-fit: contain;
+  background: #fff;
+}
+
+.dd-winner-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-text);
+  line-height: 1.2;
+}
+
+.dd-winner-stats {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-2);
+  margin-top: 4px;
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1200px) {
+    .dd-content { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .dd-content { grid-template-columns: 1fr; }
+}
+
 .footer {
   height: 40px;
   background: var(--navbar-bg);

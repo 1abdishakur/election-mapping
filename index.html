@@ -284,6 +284,63 @@
             </div>
         </div>
 
+        <!-- ── DISTRICT DETAILS PANEL (Full Width) ─────────── -->
+        <section id="district-details-container" class="district-details-section" style="display:none;">
+            <div class="dd-header">
+                <div class="dd-title">
+                    <span class="dd-badge" id="dd-category">Cat A</span>
+                    <h2 id="dd-name">District Name</h2>
+                    <span class="dd-subtitle" id="dd-state">State Name</span>
+                </div>
+                <button class="close-dd-btn" id="hide-district-panel">&times;</button>
+            </div>
+            
+            <div class="dd-content">
+                <!-- Group 1: General Stats -->
+                <div class="dd-card">
+                    <div class="dd-card-label">Electoral Statistics</div>
+                    <div class="dd-grid">
+                        <div class="dd-stat"><span>Registered</span> <strong id="dd-reg">—</strong></div>
+                        <div class="dd-stat"><span>ID Collected</span> <strong id="dd-id">—</strong></div>
+                        <div class="dd-stat"><span>Turnout</span> <strong id="dd-turnout">—</strong></div>
+                        <div class="dd-stat"><span>National Rank</span> <strong id="dd-rank">—</strong></div>
+                    </div>
+                </div>
+
+                <!-- Group 2: Votes Details -->
+                <div class="dd-card">
+                    <div class="dd-card-label">Votes Breakdown</div>
+                    <div class="dd-grid">
+                        <div class="dd-stat"><span>Valid Votes</span> <strong id="dd-valid">—</strong></div>
+                        <div class="dd-stat"><span>Invalid Votes</span> <strong id="dd-invalid">—</strong><span class="dd-perc" id="dd-invalid-perc">0%</span></div>
+                        <div class="dd-stat"><span>Total Cast</span> <strong id="dd-total-cast">—</strong></div>
+                    </div>
+                </div>
+
+                <!-- Group 3: Operations -->
+                <div class="dd-card">
+                    <div class="dd-card-label">Operations & Staff</div>
+                    <div class="dd-grid">
+                        <div class="dd-stat"><span>Polling Centers</span> <strong id="dd-centers">—</strong></div>
+                        <div class="dd-stat"><span>Polling Stations</span> <strong id="dd-stations">—</strong></div>
+                        <div class="dd-stat"><span>Total Staff</span> <strong id="dd-staff">—</strong></div>
+                    </div>
+                </div>
+
+                <!-- Group 4: Results Summary -->
+                <div class="dd-card dd-winner-card">
+                    <div class="dd-card-label">Winning Party</div>
+                    <div class="dd-winner-info" id="dd-winner-box">
+                        <img src="" class="dd-winner-logo" id="dd-winner-logo" alt="">
+                        <div class="dd-winner-text">
+                            <div class="dd-winner-name" id="dd-winner-name">—</div>
+                            <div class="dd-winner-stats" id="dd-winner-stats">0 Seats · 0 Votes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <footer class="footer">
             <span class="footer-text">Local Election Monitoring Dashboard &copy; 2026 | NATIONAL INDEPENDENT ELECTORAL
                 COMMISSION</span>

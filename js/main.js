@@ -196,6 +196,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(label, modeLabel);
+        UIController.updateDistrictDetailPanel(null);
     }
 
     onDistrictChange(code) {
@@ -215,6 +216,7 @@ class ElectionDashboard {
             const sel = document.getElementById('choropleth-mode');
             const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
             UIController.setContext('State Overview', modeLabel);
+            UIController.updateDistrictDetailPanel(null);
             return;
         }
 
@@ -351,6 +353,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext('National Overview', modeLabel);
+        UIController.updateDistrictDetailPanel(null);
     }
 
     // ── Helpers ───────────────────────────────────────────────
@@ -368,6 +371,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(district.district_name, modeLabel);
+        UIController.updateDistrictDetailPanel(district);
     }
 
     updatePartyList(summary, isDistrictLevel = false) {

@@ -14,6 +14,12 @@ export const UIController = {
         document.getElementById('reset-btn').addEventListener('click', onReset);
         document.getElementById('show-all-parties').addEventListener('click', onShowAllParties);
 
+        // Close District Panel
+        const ddp = document.getElementById('district-details-container');
+        document.getElementById('hide-district-panel').addEventListener('click', () => {
+            ddp.style.display = 'none';
+        });
+
         document.addEventListener('click', e => {
             if (!e.target.closest('.search-wrap')) {
                 document.getElementById('search-results').classList.remove('open');
@@ -399,6 +405,64 @@ export const UIController = {
         const loader = document.getElementById('loading-overlay');
         if (loader) {
             loader.classList.add('hidden');
+        }
+    },
+
+    updateDistrictDetailPanel(d) {
+        const ddp = document.getElementById('district-details-container');
+        if (!d) {
+            if (ddp) ddp.style.display = 'none';
+            return;
+        }
+
+        const fmt = (n, p = 0) => (typeof n === 'number' && !isNaN(n)) ? n.toLocaleString(undefined, { minimumFractionDigits: p, maximumFractionDigits: p }) : '—';
+        const fmtPct = n => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(1) + '%' : '—';
+
+        // Header
+        this._set('dd-name', d.district_name);
+        this._set('dd-category', d.district_category || '—');
+        this._set('dd-state', d.state?.state_name || '—');
+
+        // Stats
+        this._set('dd-reg', fmt(d.registered_people));
+        this._set('dd-id', fmt(d.id_cards_collected));
+        this._set('dd-turnout', fmtPct(d.turnout_perc));
+        this._set('dd-rank', d.ranks?.turnout ? `#${d.ranks.turnout}` : '—');
+
+        // Breakdown
+        this._set('dd-valid', fmt(d.valid_votes));
+        this._set('dd-invalid', fmt(d.invalid_votes));
+        this._set('dd-invalid-perc', fmtPct(d.invalid_perc));
+        this._set('dd-total-cast', fmt(d.total_votes));
+
+        // Ops
+        this._set('dd-centers', fmt(d.operations?.polling_centers_used));
+        this._set('dd-stations', fmt(d.operations?.polling_stations_used));
+        const staff = (d.operations?.registration_staff_used || 0) + (d.operations?.id_distribution_staff_used || 0) + (d.operations?.election_day_staff_used || 0);
+        this._set('dd-staff', fmt(staff));
+
+        // Winner
+        const w = d.winner;
+        const box = document.getElementById('dd-winner-box');
+        if (w) {
+            const logo = document.getElementById('dd-winner-logo');
+            logo.src = w.party_logo_url || '';
+            logo.onerror = () => { logo.src = 'https://via.placeholder.com/44?text=' + encodeURIComponent(w.party_code); };
+            this._set('dd-winner-name', w.party_name);
+            this._set('dd-winner-stats', `${fmt(w.seats_won)} Seats · ${fmt(w.votes_received)} Votes`);
+            if (box) box.style.borderLeft = `4px solid ${w.party_color || '#ccc'}`;
+        } else {
+            this._set('dd-winner-name', 'No Data');
+            this._set('dd-winner-stats', '—');
+            if (box) box.style.borderLeft = 'none';
+        }
+
+        if (ddp) {
+            ddp.style.display = 'flex';
+            // Smooth scroll into view
+            setTimeout(() => {
+                ddp.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
         }
     }
 };

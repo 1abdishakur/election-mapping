@@ -95,17 +95,28 @@ export const DataJoiner = {
             // Join Elected Candidates
             district.winners = (elected_candidates || [])
                 .filter(ec => {
-                    const ecCode = String(ec.district_code || ec.dist_code || '').trim().toUpperCase();
+                    // Defensive: find the district code in the candidate row regardless of key casing
+                    const row = {};
+                    Object.keys(ec).forEach(k => row[k.toLowerCase().trim()] = ec[k]);
+                    
+                    const ecCode = String(row.district_code || row.dist_code || row.code || '').trim().toUpperCase();
                     const dCode = String(districtCode || '').trim().toUpperCase();
                     return ecCode === dCode && ecCode !== '';
                 })
                 .map(ec => {
-                    const pc = String(ec.party_code).trim();
+                    // Re-map to normalized keys for the UI
+                    const row = {};
+                    Object.keys(ec).forEach(k => row[k.toLowerCase().trim()] = ec[k]);
+                    
+                    const pc = String(row.party_code || '').trim();
                     const party = partiesLookup[pc] || {};
                     return {
-                        ...ec,
-                        party_name: party.party_name || pc,
-                        party_color: party.party_color,
+                        ...row,
+                        // Ensure required fields are available under standard keys
+                        seat_number: row.seat_number,
+                        elected_candidates: row.elected_candidates || row.candidate_name || row.candidate || row.name || 'Unknown',
+                        party_name: party.party_name || row.party_name || pc,
+                        party_color: party.party_color || '#ccc',
                         party_logo_url: party.party_logo_url || ''
                     };
                 });

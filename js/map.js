@@ -205,17 +205,7 @@ export const MapModule = {
         // Scale bar
         L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(this.map);
 
-        // Measure tool
-        if (window.L && L.control.measure) {
-            L.control.measure({
-                position: 'topright',
-                primaryLengthUnit: 'kilometers',
-                secondaryLengthUnit: 'meters',
-                primaryAreaUnit: 'sqkilometers',
-                activeColor: '#2563eb',
-                completedColor: '#059669'
-            }).addTo(this.map);
-        }
+
 
         // Draw districts
         this.renderDistricts(geoJSON);
@@ -241,33 +231,56 @@ export const MapModule = {
     },
 
     addModeControl() {
+        const self = this;
         const ModeControl = L.Control.extend({
             options: { position: 'topright' },
             onAdd: () => {
-                const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-custom-mode');
+                const container = L.DomUtil.create('div', 'leaflet-control mode-dropdown');
                 container.innerHTML = `
-                    <select id="choropleth-mode" class="map-mode-select modern-select">
-                        <option value="default" selected>Default View</option>
-                        <option value="registered">Registered Voters</option>
-                        <option value="id_collected">ID Cards Collected</option>
-                        <option value="turnout">Voter Turnout</option>
-                        <option value="votes">Valid Votes</option>
-                        <option value="invalid">Invalid Votes</option>
-                        <option value="winner">Winning Party</option>
-                    </select>
+                    <button class="mode-dropdown-trigger" id="mode-dropdown-trigger">
+                        <span id="current-mode-label">Default View</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left:8px; opacity:0.6;"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <div class="mode-dropdown-menu" id="mode-dropdown-menu" style="display:none;">
+                        <div class="mode-opt selected" data-value="default">Default View</div>
+                        <div class="mode-opt" data-value="registered">Registered Voters</div>
+                        <div class="mode-opt" data-value="id_collected">ID Cards Collected</div>
+                        <div class="mode-opt" data-value="turnout">Voter Turnout</div>
+                        <div class="mode-opt" data-value="votes">Valid Votes</div>
+                        <div class="mode-opt" data-value="invalid">Invalid Votes</div>
+                        <div class="mode-opt" data-value="winner">Winning Party</div>
+                    </div>
                 `;
                 
                 L.DomEvent.disableClickPropagation(container);
                 L.DomEvent.disableScrollPropagation(container);
 
-                const sel = container.querySelector('select');
-                sel.onchange = (e) => {
-                    const mode = e.target.value;
-                    this.setMode(mode);
-                    const event = new CustomEvent('modeChanged', { detail: mode });
-                    window.dispatchEvent(event);
+                const btn = container.querySelector('#mode-dropdown-trigger');
+                const menu = container.querySelector('#mode-dropdown-menu');
+                const label = container.querySelector('#current-mode-label');
+
+                btn.onclick = () => {
+                    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
                 };
-                
+
+                container.querySelectorAll('.mode-opt').forEach(opt => {
+                    opt.onclick = () => {
+                        const val = opt.getAttribute('data-value');
+                        label.textContent = opt.textContent;
+                        
+                        container.querySelectorAll('.mode-opt').forEach(m => m.classList.remove('selected'));
+                        opt.classList.add('selected');
+                        
+                        self.setMode(val);
+                        window.dispatchEvent(new CustomEvent('modeChanged', { detail: val }));
+                        menu.style.display = 'none';
+                    };
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target)) menu.style.display = 'none';
+                });
+
                 return container;
             }
         });

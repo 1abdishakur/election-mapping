@@ -1141,27 +1141,32 @@ export const MapModule = {
         controls.onAdd = () => {
             const div = L.DomUtil.create('div', 'map-layer-controls glass-panel');
             div.innerHTML = `
-                <div class="lc-title">Map Layers</div>
-                <label><input type="checkbox" id="chk-centers" checked> Show Centers</label>
-                <label><input type="checkbox" id="chk-coverage"> Coverage Range</label>
-                <div id="coverage-radius-wrap" style="display:none; flex-direction:column; gap:4px; margin:4px 0 8px 24px;">
+                <div class="lc-title" style="font-size: 10px; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">Map Layers</div>
+                <label style="font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="chk-centers"> Show Centers
+                </label>
+                <label style="font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="chk-coverage"> Coverage Range
+                </label>
+                <div id="coverage-radius-wrap" style="display:none; flex-direction:column; gap:3px; margin:2px 0 6px 20px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-size:10px; color:var(--c-text-3);">Radius: <span id="radius-val">1.0</span> km</div>
-                        <input type="number" id="radius-input" value="1000" min="100" max="10000" style="width:50px; font-size:9px; background:rgba(255,255,255,0.05); border:1px solid var(--c-border); color:white; border-radius:3px;">
+                        <div style="font-size:9px; color:var(--c-text-3);">Radius: <span id="radius-val">1.0</span> km</div>
+                        <input type="number" id="radius-input" value="1000" min="100" max="10000" style="width:42px; font-size:8px; height:18px; padding:0 2px; background:rgba(255,255,255,0.05); border:1px solid var(--c-border); color:white; border-radius:2px;">
                     </div>
-                    <input type="range" id="radius-slider" min="200" max="5000" step="100" value="1000" style="width:100%; cursor:pointer;">
-                    <div style="font-size:9px; color:var(--c-text-3); font-style:italic;">Manual Buffer (m)</div>
+                    <input type="range" id="radius-slider" min="200" max="5000" step="100" value="1000" style="width:100%; cursor:pointer; height:12px;">
                 </div>
                 
-                <label><input type="checkbox" id="chk-heatmap"> Density Heatmap</label>
-                <div id="heatmap-options-wrap" style="display:none; flex-direction:column; gap:8px; margin:4px 0 8px 24px;">
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <div style="font-size:10px; color:var(--c-text-3);">Radius: <span id="heat-radius-val">25</span>px</div>
-                        <input type="range" id="heat-radius-slider" min="5" max="60" step="1" value="25" style="width:100%; cursor:pointer;">
+                <label style="font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="chk-heatmap"> Density Heatmap
+                </label>
+                <div id="heatmap-options-wrap" style="display:none; flex-direction:column; gap:6px; margin:2px 0 6px 20px;">
+                    <div style="display:flex; flex-direction:column; gap:1px;">
+                        <div style="font-size:9px; color:var(--c-text-3);">Radius: <span id="heat-radius-val">25</span>px</div>
+                        <input type="range" id="heat-radius-slider" min="5" max="60" step="1" value="25" style="width:100%; cursor:pointer; height:12px;">
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <div style="font-size:10px; color:var(--c-text-3);">Intensity: <span id="heat-blur-val">15</span>px (Blur)</div>
-                        <input type="range" id="heat-blur-slider" min="5" max="50" step="1" value="15" style="width:100%; cursor:pointer;">
+                    <div style="display:flex; flex-direction:column; gap:1px;">
+                        <div style="font-size:9px; color:var(--c-text-3);">Intensity: <span id="heat-blur-val">15</span>px (Blur)</div>
+                        <input type="range" id="heat-blur-slider" min="5" max="50" step="1" value="15" style="width:100%; cursor:pointer; height:12px;">
                     </div>
                 </div>
             `;

@@ -44,9 +44,12 @@ export const UIController = {
         });
 
         // Sidebar Resizers
-        const root = document.documentElement;
+        const activeRoot = document.documentElement;
         let isResizingLeft = false;
         let isResizingRight = false;
+        const sb = this.sb;
+        const cb = this.cb;
+        const updateGrid = this.updateGrid;
 
         const resizerLeft = document.getElementById('resizer-left');
         const resizerRight = document.getElementById('resizer-right');
@@ -71,14 +74,14 @@ export const UIController = {
 
         document.addEventListener('mousemove', (e) => {
             if (isResizingLeft) {
-                if (sb.classList.contains('collapsed')) return;
+                if (!sb || sb.classList.contains('collapsed')) return;
                 const newWidth = Math.max(200, Math.min(e.clientX, window.innerWidth / 2));
-                root.style.setProperty('--sidebar-w', `${newWidth}px`);
+                activeRoot.style.setProperty('--sidebar-w', `${newWidth}px`);
                 updateGrid();
             } else if (isResizingRight) {
-                if (cb.classList.contains('collapsed')) return;
+                if (!cb || cb.classList.contains('collapsed')) return;
                 const newWidth = Math.max(250, Math.min(window.innerWidth - e.clientX, window.innerWidth / 2));
-                root.style.setProperty('--charts-w', `${newWidth}px`);
+                activeRoot.style.setProperty('--charts-w', `${newWidth}px`);
                 updateGrid();
             }
         });

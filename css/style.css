@@ -437,24 +437,39 @@ a {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 6px;
+  width: 12px;
   cursor: col-resize;
   z-index: 1000;
   background: transparent;
-  transition: background 0.2s;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
 }
 
-.sidebar-resizer:hover, .sidebar-resizer.dragging {
+.sidebar-resizer::after {
+  content: '';
+  width: 3px;
+  height: 32px;
+  background: var(--c-border);
+  border-radius: 4px;
+  opacity: 0.3;
+  transition: all 0.2s;
+}
+
+.sidebar-resizer:hover::after, .sidebar-resizer.dragging::after {
+  height: 48px;
   background: var(--c-primary);
-  opacity: 0.6;
+  opacity: 1;
+  width: 4px;
 }
 
 .resizer-left {
-  right: -3px;
+  right: -6px;
 }
 
 .resizer-right {
-  left: -3px;
+  left: -6px;
 }
 
 .sidebar.collapsed .sidebar-resizer {

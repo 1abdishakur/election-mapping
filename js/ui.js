@@ -14,10 +14,27 @@ export const UIController = {
         document.getElementById('reset-btn').addEventListener('click', onReset);
         document.getElementById('show-all-parties').addEventListener('click', onShowAllParties);
 
-        // Close District Panel
-        const ddp = document.getElementById('district-details-container');
-        document.getElementById('hide-district-panel').addEventListener('click', () => {
-            ddp.style.display = 'none';
+        // Details panel has been removed per user specs
+
+        this.sb = document.getElementById('party-sidebar');
+        this.cb = document.getElementById('charts-sidebar');
+        this.grid = document.querySelector('.body-grid');
+
+        this.updateGrid = () => {
+            const sW = this.sb.classList.contains('collapsed') ? '44px' : 'var(--sidebar-w)';
+            const cW = this.cb.classList.contains('collapsed') ? '44px' : 'var(--charts-w)';
+            if (this.grid) this.grid.style.gridTemplateColumns = `${sW} 1fr ${cW}`;
+            window.dispatchEvent(new Event('resize')); // Recalculate maps/charts
+        };
+
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            this.sb.classList.toggle('collapsed');
+            this.updateGrid();
+        });
+
+        document.getElementById('toggle-charts').addEventListener('click', () => {
+            this.cb.classList.toggle('collapsed');
+            this.updateGrid();
         });
 
         document.addEventListener('click', e => {
@@ -26,69 +43,63 @@ export const UIController = {
             }
         });
 
-        // Panel Compress/Expand Toggles
-        const sb = document.getElementById('party-sidebar');
-        const cb = document.getElementById('charts-sidebar');
-        const grid = document.querySelector('.body-grid');
+        // Sidebar Resizers
+        const root = document.documentElement;
+        let isResizingLeft = false;
+        let isResizingRight = false;
 
-        const updateGrid = () => {
-            const sW = sb.classList.contains('collapsed') ? '44px' : 'var(--sidebar-w)';
-            const cW = cb.classList.contains('collapsed') ? '44px' : 'var(--charts-w)';
-            grid.style.gridTemplateColumns = `${sW} 1fr ${cW}`;
-        };
+        const resizerLeft = document.getElementById('resizer-left');
+        const resizerRight = document.getElementById('resizer-right');
 
-        document.getElementById('toggle-sidebar').addEventListener('click', () => {
-            sb.classList.toggle('collapsed');
-            updateGrid();
-        });
+        if (resizerLeft) {
+            resizerLeft.addEventListener('mousedown', (e) => {
+                isResizingLeft = true;
+                resizerLeft.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        }
 
-        document.getElementById('toggle-charts').addEventListener('click', () => {
-            cb.classList.toggle('collapsed');
-            updateGrid();
-        });
+        if (resizerRight) {
+            resizerRight.addEventListener('mousedown', (e) => {
+                isResizingRight = true;
+                resizerRight.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        }
 
-        // 📱 MOBILE INTERACTION HANDLERS
-        const nv = document.getElementById('navbar-content');
-        const mMenu = document.getElementById('mobile-menu-toggle');
-        const mParties = document.getElementById('mobile-toggle-parties');
-        const mCharts = document.getElementById('mobile-toggle-charts');
-
-        mMenu.addEventListener('click', e => {
-            e.stopPropagation();
-            nv.classList.toggle('open');
-            sb.classList.remove('open');
-            cb.classList.remove('open');
-        });
-
-        mParties.addEventListener('click', e => {
-            e.stopPropagation();
-            sb.classList.toggle('open');
-            cb.classList.remove('open');
-            nv.classList.remove('open');
-        });
-
-        mCharts.addEventListener('click', e => {
-            e.stopPropagation();
-            cb.classList.toggle('open');
-            sb.classList.remove('open');
-            nv.classList.remove('open');
-        });
-
-        // Close all on background click
-        document.addEventListener('click', e => {
-            if (!e.target.closest('.navbar') &&
-                !e.target.closest('.sidebar') &&
-                !e.target.closest('.charts-panel') &&
-                !e.target.closest('.mobile-fab-container')) {
-                nv.classList.remove('open');
-                sb.classList.remove('open');
-                cb.classList.remove('open');
+        document.addEventListener('mousemove', (e) => {
+            if (isResizingLeft) {
+                if (sb.classList.contains('collapsed')) return;
+                const newWidth = Math.max(200, Math.min(e.clientX, window.innerWidth / 2));
+                root.style.setProperty('--sidebar-w', `${newWidth}px`);
+                updateGrid();
+            } else if (isResizingRight) {
+                if (cb.classList.contains('collapsed')) return;
+                const newWidth = Math.max(250, Math.min(window.innerWidth - e.clientX, window.innerWidth / 2));
+                root.style.setProperty('--charts-w', `${newWidth}px`);
+                updateGrid();
             }
         });
 
+        document.addEventListener('mouseup', () => {
+            if (isResizingLeft || isResizingRight) {
+                isResizingLeft = false;
+                isResizingRight = false;
+                if (resizerLeft) resizerLeft.classList.remove('dragging');
+                if (resizerRight) resizerRight.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                window.dispatchEvent(new Event('resize')); // Recalculate maps & charts
+            }
+        });
+
+        // 📱 MOBILE INTERACTION HANDLERS — Removed for Desktop-Only spec
         this.initTheme();
         this.initFullscreen();
     },
+
 
     initFullscreen() {
         const btn = document.getElementById('fullscreen-btn');
@@ -125,7 +136,23 @@ export const UIController = {
             }
         }
 
-        btn.addEventListener('click', toggleFullScreen);
+        btn.addEventListener('click', () => {
+            // If we are about to enter fullscreen, collapse sidebars
+            const isEntering = !(document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            
+            if (this.sb && this.cb) {
+                if (isEntering) {
+                    this.sb.classList.add('collapsed');
+                    this.cb.classList.add('collapsed');
+                } else {
+                    this.sb.classList.remove('collapsed');
+                    this.cb.classList.remove('collapsed');
+                }
+            }
+            
+            if (this.updateGrid) this.updateGrid();
+            toggleFullScreen();
+        });
         
         const updateIcon = () => {
             const isFullscreen = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
@@ -324,34 +351,44 @@ export const UIController = {
 
         partySummaries.forEach(p => {
             const el = document.createElement('div');
-            el.className = 'party-item';
+            el.className = 'party-card';
             el.dataset.code = p.party_code;
 
             const logoSrc = p.party_logo_url || '';
-            let extraHtml = '';
+            const seats = p.seats_won || 0;
+            const votes = p.votes_received || 0;
+            const totalSeatsAvailable = partySummaries.reduce((sum, item) => sum + (item.seats_won || 0), 0);
+            const seatShare = totalSeatsAvailable > 0 ? (seats / totalSeatsAvailable) * 100 : 0;
+
+            let badgeHtml = '';
             if (isDistrictLevel) {
                 const isContested = String(p.is_contested).trim().toUpperCase() === 'TRUE';
                 if (!isContested) {
-                    extraHtml = `
-                    <div class="party-cand-info">
-                        <span class="badge-uncontested">Not Contested</span>
-                    </div>`;
+                    badgeHtml = `<span class="badge-uncontested">Not Contested</span>`;
                 }
             }
 
             el.innerHTML = `
-                <div class="party-swatch" style="background:${p.party_color || '#9ca3af'}"></div>
-                <img class="party-logo" src="${logoSrc}" alt="${p.party_name}"
-                     onerror="this.style.background='#e5e7eb'; this.src=''">
-                <div class="party-text">
-                    <div class="party-name">${p.party_name}</div>
-                    <div class="party-stat">${(p.seats_won || 0).toLocaleString()} seats won &middot; ${(p.votes_received || 0).toLocaleString()} votes</div>
-                    <div class="party-gender-seats">M: ${p.male_seats_won || 0} &middot; F: ${p.female_seats_won || 0}</div>
-                    ${extraHtml}
+                <div class="pc-accent" style="background:${p.party_color || '#9ca3af'}"></div>
+                <div class="pc-compact-col-wrap">
+                    <img class="pc-logo-side" src="${logoSrc}" alt="${p.party_name}"
+                         onerror="this.style.background='#f3f4f6'; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22%3E%3Cpath fill=%22%23ccc%22 d=%22M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 12.27c-2.53-.49-4.64-2.13-5.59-4.34C7.05 14.15 9.4 13.5 12 13.5s4.95.65 5.59 1.43c-.95 2.21-3.06 3.85-5.59 4.34z%22/%3E%3C/svg%3E'">
+                    <div class="pc-details-stack">
+                        <div class="pc-name-tiny">${p.party_name}</div>
+                        <div class="pc-unit-row2">
+                            <div class="pc-stats-tiny">
+                                <span><strong>${votes.toLocaleString()}</strong> Votes</span>
+                                <span class="pc-seats-prominent"><strong>${seats.toLocaleString()}</strong> Seats</span>
+                            </div>
+                            <div class="pc-bar-tiny">
+                                <div class="pc-fill-tiny" style="width:${seatShare}%; background:${p.party_color || '#9ca3af'}"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>`;
 
             el.addEventListener('click', () => {
-                document.querySelectorAll('.party-item').forEach(x => x.classList.remove('selected'));
+                document.querySelectorAll('.party-card').forEach(x => x.classList.remove('selected'));
                 el.classList.add('selected');
                 onPartyClick(p.party_code);
             });
@@ -361,7 +398,7 @@ export const UIController = {
     },
 
     clearPartySelection() {
-        document.querySelectorAll('.party-item').forEach(x => x.classList.remove('selected'));
+        document.querySelectorAll('.party-card').forEach(x => x.classList.remove('selected'));
     },
 
     setContext(text, modeLabel = '') {
@@ -408,72 +445,20 @@ export const UIController = {
         }
     },
 
-    updateDistrictDetailPanel(d, title, subtitle, badge) {
-        const ddp = document.getElementById('district-details-container');
+    updateDistrictDetailPanel(d) {
+        const listContainer = document.getElementById('dd-candidates-list');
+        const candidatesBlock = listContainer ? listContainer.closest('.chart-block') : null;
+
         if (!d) {
-            if (ddp) ddp.style.display = 'none';
+            if (candidatesBlock) candidatesBlock.style.display = 'none';
             return;
         }
 
-        const fmt = (n, p = 0) => (typeof n === 'number' && !isNaN(n)) ? n.toLocaleString(undefined, { minimumFractionDigits: p, maximumFractionDigits: p }) : '—';
-        const fmtPct = n => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(1) + '%' : '—';
-
-        // Support both raw district and summary object
-        const reg = d.registered_people != null ? d.registered_people : d.totalRegistered;
-        const idCol = d.id_cards_collected != null ? d.id_cards_collected : d.totalIdCards;
-        const turnPct = d.turnout_perc != null ? d.turnout_perc : d.turnoutPct;
-        const valid = d.valid_votes != null ? d.valid_votes : d.totalVotes;
-        const inv = d.invalid_votes != null ? d.invalid_votes : d.totalInvalid;
-        const invPct = d.invalid_perc != null ? d.invalid_perc : d.invalidPct;
-        const totalV = d.total_votes != null ? d.total_votes : d.turnoutVotes;
-        
-        const centers = (d.operations?.polling_centers_used != null) ? d.operations.polling_centers_used : (d.opStats?.centers || 0);
-        const stations = (d.operations?.polling_stations_used != null) ? d.operations.polling_stations_used : (d.opStats?.stations || 0);
-        const staff = d.staffStats ? (d.staffStats.reg + d.staffStats.id + d.staffStats.day) : ((d.operations?.registration_staff_used || 0) + (d.operations?.id_distribution_staff_used || 0) + (d.operations?.election_day_staff_used || 0));
-
-        // Header
-        this._set('dd-name', title || d.district_name || 'All Districts');
-        this._set('dd-category', badge || d.district_category || 'Sum');
-        this._set('dd-state', subtitle || d.state?.state_name || 'Overview');
-
-        // Stats
-        this._set('dd-reg', fmt(reg));
-        this._set('dd-id', fmt(idCol));
-        this._set('dd-turnout', fmtPct(turnPct));
-        this._set('dd-rank', d.ranks?.turnout ? `#${d.ranks.turnout}` : '—');
-
-        // Breakdown
-        this._set('dd-valid', fmt(valid));
-        this._set('dd-invalid', fmt(inv));
-        this._set('dd-invalid-perc', fmtPct(invPct));
-        this._set('dd-total-cast', fmt(totalV));
-
-        // Ops
-        this._set('dd-centers', fmt(centers));
-        this._set('dd-stations', fmt(stations));
-        this._set('dd-staff', fmt(staff));
-
-        // Winner
-        const w = d.winner || d.overallWinner;
-        const box = document.getElementById('dd-winner-box');
-        if (w) {
-            const logo = document.getElementById('dd-winner-logo');
-            logo.src = w.party_logo_url || '';
-            logo.onerror = () => { logo.src = 'https://via.placeholder.com/44?text=' + encodeURIComponent(w.party_code); };
-            this._set('dd-winner-name', w.party_name);
-            this._set('dd-winner-stats', `${fmt(w.seats_won)} Seats · ${fmt(w.votes_received)} Votes`);
-            if (box) box.style.borderLeft = `4px solid ${w.party_color || '#ccc'}`;
-        } else {
-            this._set('dd-winner-name', 'No Data');
-            this._set('dd-winner-stats', '—');
-            if (box) box.style.borderLeft = 'none';
-        }
-
         // Elected Candidates List
-        const listContainer = document.getElementById('dd-candidates-list');
         if (listContainer) {
             const winners = (d.winners || []).sort((a, b) => a.seat_number - b.seat_number);
             if (winners.length > 0) {
+                if (candidatesBlock) candidatesBlock.style.display = '';
                 let html = `<table class="dd-candidates-table">
                     <thead>
                         <tr>
@@ -498,16 +483,55 @@ export const UIController = {
                 html += `</tbody></table>`;
                 listContainer.innerHTML = html;
             } else {
+                if (candidatesBlock) candidatesBlock.style.display = 'none';
                 listContainer.innerHTML = '<div class="dd-empty-msg">No candidate data available for this selection.</div>';
             }
         }
+    },
 
-        if (ddp) {
-            ddp.style.display = 'flex';
-            // Smooth scroll into view
-            setTimeout(() => {
-                ddp.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }, 300);
-        }
+    updateMajorityTracker(summary, parties) {
+        const container = document.getElementById('majority-tracker');
+        if (!container) return;
+
+        const totalSeats = summary.totalSeats || 0;
+        const majority = Math.floor(totalSeats / 2) + 1;
+        
+        // Sorting parties by seats won
+        const partySeatsArr = Object.keys(parties).map(code => ({
+            code,
+            name: parties[code]?.party_name || code,
+            color: parties[code]?.party_color || '#ccc',
+            seats: summary.partySeats?.[code] || 0
+        })).sort((a, b) => b.seats - a.seats);
+
+        const winner = partySeatsArr[0];
+        const hasMajority = winner && winner.seats >= majority;
+        const seatsToMajority = majority - (winner ? winner.seats : 0);
+
+        let segmentsHtml = '';
+        partySeatsArr.forEach(p => {
+            if (p.seats <= 0) return;
+            const width = (p.seats / totalSeats) * 100;
+            segmentsHtml += `<div class="majority-segment" style="width:${width}%; background:${p.color}" title="${p.name}: ${p.seats} seats"></div>`;
+        });
+
+        const statusLabel = hasMajority 
+            ? `<span style="color:var(--c-accent)">${winner.name} has secured majority control</span>` 
+            : `<span>Coalition Needed: <strong>${seatsToMajority} more seats</strong> to reach <strong>${majority}</strong></span>`;
+
+        container.innerHTML = `
+            <div class="majority-info">
+                <span>Seat Majority Tracker</span>
+                <span>Target: ${majority}</span>
+            </div>
+            <div class="majority-bar">
+                <div class="majority-marker" style="left: 50%;" title="Majority Line (${majority})"></div>
+                ${segmentsHtml}
+            </div>
+            <div class="majority-status">
+                <i style="background:${hasMajority ? 'var(--c-accent)' : 'var(--c-warn)'}"></i>
+                ${statusLabel}
+            </div>
+        `;
     }
 };

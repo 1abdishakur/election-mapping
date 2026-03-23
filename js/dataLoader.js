@@ -24,8 +24,7 @@ export const DataLoader = {
                 return [];
             }
             const rows = this.parseCSV(text);
-            console.log(`[DataLoader] ${name} (${sheetName}): ${rows.length} rows`);
-            if (rows.length > 0) console.log(`[DataLoader] ${name} columns:`, Object.keys(rows[0]).join(', '));
+
             return rows;
         } catch (err) {
             console.warn(`[DataLoader] Failed "${name}": ${err.message}`);

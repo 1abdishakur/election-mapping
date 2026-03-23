@@ -2,6 +2,7 @@
  * Data Joiner Module
  * Handles relational joins between tables and normalization.
  */
+import { CONFIG } from './config.js';
 
 export const DataJoiner = {
     /**
@@ -12,12 +13,12 @@ export const DataJoiner = {
         const normalizedTables = this.normalize(tables);
 
         // Map tables for easier access
-        const { states, districts, party_results, election_operations, centers, elected_candidates } = normalizedTables;
+        const { states, districts, party, party_results, election_operations, centers, elected_candidates } = normalizedTables;
 
         // Create lookups — trim keys to handle whitespace in CSV
         const statesLookup = states.reduce((acc, s) => { acc[String(s.state_code).trim()] = s; return acc; }, {});
 
-        // Build partiesLookup from party_results (unique party_code entries)
+        // Build partiesLookup
         // Ensure every party has a globally unique color if none is provided
         const generateDistinctColor = (index) => {
             const palette = [
@@ -28,36 +29,45 @@ export const DataJoiner = {
                 '#1C6926', '#D05F39', '#8D397C'
             ];
             if (index < palette.length) return palette[index];
-            // Algorithmic distinct hue fallback using golden ratio
             const h = (index * 137.508) % 360;
             return `hsl(${h}, 70%, 45%)`;
         };
 
         let colorIdx = 0;
-
-        // The list of party codes that have official images in the local directory
         const partiesWithLogos = ['2', '7', '9', '11', '12', '13', '15', '17', '23', '27', '28', '29', '33', '35', '37', '38', '45', '48', '53', '55'];
 
         const partiesLookup = {};
+
+        // 1. Fill from the dedicated 'party' sheet (contains official names/colors)
+        if (party && Array.isArray(party)) {
+            party.forEach(p => {
+                const code = String(p.party_code || '').trim();
+                if (!code) return;
+                const hasLogo = partiesWithLogos.includes(code);
+                partiesLookup[code] = {
+                    party_code: code,
+                    party_name: (p.party_name || code).trim(),
+                    party_color: (p.party_color || '').trim() || generateDistinctColor(colorIdx++),
+                    party_logo_url: p.party_logo_url || (hasLogo ? `data/party logos/${code}.png` : '')
+                };
+            });
+        }
+
+        // 2. Supplement from party_results (if a party appears in results but not the main party sheet)
         party_results.forEach(pr => {
-            const code = String(pr.party_code).trim();
+            const code = String(pr.party_code || '').trim();
+            if (!code) return;
+
             if (!partiesLookup[code]) {
                 const hasLogo = partiesWithLogos.includes(code);
                 partiesLookup[code] = {
                     party_code: code,
                     party_name: (pr.party_name || code).trim(),
-                    party_color: pr.party_color || generateDistinctColor(colorIdx++),
+                    party_color: (pr.party_color || '').trim() || generateDistinctColor(colorIdx++),
                     party_logo_url: pr.party_logo_url || (hasLogo ? `data/party logos/${code}.png` : '')
                 };
             }
         });
-
-        // Swap colors for party 15 and 37
-        if (partiesLookup['15'] && partiesLookup['37']) {
-            const tempColor = partiesLookup['15'].party_color;
-            partiesLookup['15'].party_color = partiesLookup['37'].party_color;
-            partiesLookup['37'].party_color = tempColor;
-        }
 
         // Build District Objects
         const districtMaster = districts.map(district => {
@@ -180,8 +190,7 @@ export const DataJoiner = {
         // Compute Global Totals
         const summary = this.computeGlobalTotals(districtMaster, partiesLookup, normalizedTables);
 
-        console.log(`[DataJoiner] Total States in Sheet: ${normalizedTables.states?.length || 0}`);
-        console.log(`[DataJoiner] Total Districts in results: ${districtMaster.length}`);
+
 
         return { districtMaster, summary, parties: partiesLookup };
     },

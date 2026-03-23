@@ -10,6 +10,7 @@ export const CONFIG = {
     SHEETS: {
         states: 'states',
         districts: 'districts',
+        party: 'party',
         party_results: 'party_results',
         election_operations: 'election_operations',
         centers: 'centers',

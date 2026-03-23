@@ -3,10 +3,14 @@
  */
 
 export const MapModule = {
+    choroplethMode: 'default',
     map: null,
     geoJSONLayer: null,
+    labelsLayer: null,
     centersLayer: null,
-    legendControl: null,
+    heatLayer: null,
+    coverageLayer: null,
+    searchControl: null,
     currentMode: 'default',
     onDistrictClick: null,
     _activePartyCode: null,
@@ -36,7 +40,7 @@ export const MapModule = {
                 idx++;
             }
         });
-        console.log('[Map] State border colors:', this._stateColorMap);
+
     },
 
     // ── Build dissolved state outlines using Turf.js ──
@@ -127,7 +131,41 @@ export const MapModule = {
 
         // Bring to front so it sits above district fills
         this._stateBordersLayer.bringToFront();
-        console.log(`[Map] Built ${stateFeatures.length} state outlines`);
+
+
+        // ── Render Large Muted State Labels ──
+        if (!this._stateLabelsLayer) {
+            this._stateLabelsLayer = L.layerGroup().addTo(this.map);
+        } else {
+            this._stateLabelsLayer.clearLayers();
+        }
+
+        stateFeatures.forEach(f => {
+            let latlng;
+            try {
+                // Try centerOfMass first for accurate polygon center
+                const com = turf.centerOfMass(f);
+                // Turf returns [longitude, latitude]
+                latlng = [com.geometry.coordinates[1], com.geometry.coordinates[0]];
+            } catch (e) {
+                const bounds = L.geoJSON(f).getBounds();
+                latlng = bounds.getCenter();
+            }
+
+            const stateMarker = L.marker(latlng, {
+                icon: L.divIcon({
+                    className: 'state-label',
+                    html: `<div class="state-label-inner">${f.properties.stateName}</div>`,
+                    iconSize: [300, 40],
+                    iconAnchor: [150, 20]
+                }),
+                interactive: false,
+                keyboard: false,
+                zIndexOffset: -10 
+            });
+            this._stateLabelsLayer.addLayer(stateMarker);
+        });
+
     },
 
     // ── Tile Layers ──────────────────────────────────────────
@@ -175,6 +213,14 @@ export const MapModule = {
         this._hoverPanel.style.display = 'none';
         document.getElementById(containerId).appendChild(this._hoverPanel);
 
+        // Hide when mouse leaves the MAP area entirely
+        const mapContainer = document.getElementById(containerId);
+        if (mapContainer) {
+            mapContainer.onmouseleave = () => {
+                if (!this._panelLocked) this._hideHoverPanel();
+            };
+        }
+
         // Interaction fix: Don't hide if mouse is in the panel
         this._hoverPanel.onmouseenter = () => { 
             if (this._hideTimer) clearTimeout(this._hideTimer);
@@ -214,9 +260,10 @@ export const MapModule = {
 
 
 
-        // Draw districts
         this.renderDistricts(geoJSON);
         this.buildCentersLayer(geoJSON);
+        this.buildAdvancedMapControls();
+        this._initSearchControl();
         this.addMiniMap(geoJSON);
 
         // Add Toggle Controls to Map
@@ -256,6 +303,7 @@ export const MapModule = {
                         <div class="mode-opt" data-value="votes">Valid Votes</div>
                         <div class="mode-opt" data-value="invalid">Invalid Votes</div>
                         <div class="mode-opt" data-value="winner">Winning Party</div>
+                        <div class="mode-opt" data-value="margin">Margin of Victory</div>
                     </div>
                 `;
                 
@@ -341,6 +389,9 @@ export const MapModule = {
 
         this.computeDynamicRanges();
         this.updateLegend();
+        
+        // Initial label render
+        setTimeout(() => this.updateLabels(), 100);
     },
 
     // Returns LatLngBounds covering ONLY features that have real data
@@ -418,7 +469,7 @@ export const MapModule = {
         if (this._miniMap) return;
         const self = this;
         const MiniMapControl = L.Control.extend({
-            options: { position: 'bottomleft' },
+            options: { position: 'bottomright' },
             onAdd: function() {
                 const container = L.DomUtil.create('div', 'leaflet-control-minimap');
                 container.style.width = '120px';
@@ -463,7 +514,9 @@ export const MapModule = {
     // ── Hover Panel ────────────────────────────────────────────
     _showHoverPanel(d, mouseEvent) {
         if (!this._hoverPanel) return;
-
+        if (this._hideTimer) clearTimeout(this._hideTimer);
+        this._hoverPanel.style.display = 'block';
+        
         let rankHtml = '';
         if (d.ranks && this.currentMode && d.ranks[this.currentMode] && this.currentMode !== 'default') {
             const modeLabels = {
@@ -825,27 +878,58 @@ export const MapModule = {
                 const total = d.total_seats || 1;
                 const pct = total > 0 ? Math.round((seats / total) * 100) : 0;
                 inner += `<div class="pl-seats" style="font-size:${fsS}px;color:#111827">${seats} seat${seats !== 1 ? 's' : ''} (${pct}%)</div>`;
+                
                 if (h >= 32) {
                     const votes = (pr.votes_received || 0).toLocaleString();
-                    inner += `<div class="pl-votes" style="font-size:${Math.max(fsS - 1, 5)}px">${votes} votes</div>`;
+                    const m = pr.male_seats_won || 0;
+                    const f = pr.female_seats_won || 0;
+                    
+                    let extra = `<div class="pl-votes" style="font-size:${Math.max(fsS - 1, 5)}px">${votes} votes</div>`;
+                    if (seats > 0) {
+                        extra += `<div class="pl-gender" style="font-size:${Math.max(fsS - 1, 5)}px; color:#4B5563; font-weight:700;">(${m}m  ${f}f)</div>`;
+                    }
+                    inner += extra;
                 }
             }
 
-            const center = bounds.getCenter();
+            let center;
+            try {
+                const com = turf.centerOfMass(layer.feature);
+                center = [com.geometry.coordinates[1], com.geometry.coordinates[0]];
+            } catch (e) {
+                center = bounds.getCenter();
+            }
+
             const marker = L.marker(center, {
                 icon: L.divIcon({
                     className: 'poly-label',
                     html: `<div class="pl-inner">${inner}</div>`,
-                    // icon sized to the polygon’s pixel footprint — text cannot overflow
-                    iconSize: [w, h],
-                    iconAnchor: [w / 2, h / 2]
+                    // icon sized to a portion of the polygon’s pixel footprint to reduce overlap
+                    iconSize: [w * 0.9, h * 0.9],
+                    iconAnchor: [(w * 0.9) / 2, (h * 0.9) / 2]
                 }),
                 interactive: false,
                 keyboard: false,
-                zIndexOffset: -1000
+                zIndexOffset: -500
             });
             this.labelsLayer.addLayer(marker);
         });
+        
+        // Also update state labels sizing/visibility on zoom
+        if (this._stateLabelsLayer) {
+            const zoom = this.map.getZoom();
+            this._stateLabelsLayer.eachLayer(layer => {
+                const el = layer.getElement();
+                if (el) {
+                    const inner = el.querySelector('.state-label-inner');
+                    if (inner) {
+                        // Very subtle zoom scaling
+                        const scale = 1 + (zoom - 6) * 0.1;
+                        inner.style.transform = `scale(${Math.max(0.6, Math.min(scale, 1.8))})`;
+                    }
+                }
+            });
+        }
     },
 
     styleFeature(feature) {
@@ -881,6 +965,8 @@ export const MapModule = {
     },
 
     getColor(d) {
+        if (!d) return '#94a3b8';
+
         if (this.currentMode === 'default') {
             const cat = String(d.district_category || '').toUpperCase();
             if (cat === 'A') return '#1d4ed8'; // Blue-700
@@ -888,23 +974,44 @@ export const MapModule = {
             if (cat === 'C') return '#f59e0b'; // Amber-500
             return '#64748b'; // Slate-500
         }
-        if (!this.modeRanges) return '#cbd5e1';
-        switch (this.currentMode) {
-            case 'turnout':
-                return this.scale(d.turnout_perc, this.modeRanges.turnout || [0, 30, 50, 65, 80], ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a']);
-            case 'registered':
-                return this.scale(d.registered_people, this.modeRanges.registered || [0, 20000, 50000, 100000, 250000], ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534']);
-            case 'id_collected':
-                return this.scale(d.id_collected_perc, this.modeRanges.id_collected || [0, 20, 40, 60, 80], ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a']);
-            case 'votes':
-                return this.scale(d.valid_votes, this.modeRanges.votes || [0, 5000, 25000, 75000, 200000], ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534']);
-            case 'invalid':
-                return this.scale(d.invalid_perc, this.modeRanges.invalid || [0, 2, 5, 10, 20], ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444']);
-            case 'winner':
-                return d.winner ? (d.winner.party_color || '#9ca3af') : '#e5e7eb';
-            default:
-                return '#cbd5e1';
+
+        if (this.currentMode === 'winner') {
+            return d.winner?.party_color || '#94a3b8';
         }
+
+        if (this.currentMode === 'margin') {
+            const results = [...(d.party_results || [])].sort((a, b) => b.votes_received - a.votes_received);
+            const winner = results[0];
+            const runnerUp = results[1];
+            const total = (d.valid_votes || 1);
+            const margin = winner && runnerUp ? ((winner.votes_received - runnerUp.votes_received) / total * 100) : (winner ? (winner.votes_received / total * 100) : 0);
+            
+            if (margin < 5) return '#dbeafe';
+            if (margin < 15) return '#60a5fa';
+            if (margin < 30) return '#2563eb';
+            return '#1e40af';
+        }
+
+        const stats = {
+            turnout: d.turnout_perc,
+            id_collected: d.id_collected_perc,
+            registered: d.registered_people,
+            votes: d.valid_votes,
+            invalid: d.invalid_perc
+        };
+
+        const val = stats[this.currentMode] || 0;
+        const stops = this.modeRanges[this.currentMode] || [0, 20, 40, 60, 80];
+        
+        // Use standard 5-step color scale for others
+        const colors = this.currentMode === 'invalid' 
+            ? ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444']
+            : ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'];
+
+        for (let i = stops.length - 1; i >= 0; i--) {
+            if (val >= stops[i]) return colors[i];
+        }
+        return colors[0];
     },
 
     scale(val, stops, colors) {
@@ -929,7 +1036,6 @@ export const MapModule = {
             },
             mouseout: e => {
                 this.geoJSONLayer.resetStyle(e.target);
-                this._hideHoverPanel();
             },
             click: e => {
                 this.map.fitBounds(e.target.getBounds(), { padding: [20, 20], maxZoom: 16 });
@@ -938,18 +1044,24 @@ export const MapModule = {
         });
     },
 
-    // ── Centers Layer ─────────────────────────────────────────
+    // ── Centers Layer & Advanced Features ─────────────────────
     _getCenterStyle(isReg, isPoll) {
-        if (isReg && !isPoll) return { fillColor: '#1a1a1a', color: '#ffffff', weight: 1.5 };  // Black = Registration
-        if (isPoll && !isReg) return { fillColor: '#FFD700', color: '#1a1a1a', weight: 1.5 };  // Yellow = Polling
-        return { fillColor: '#1a1a1a', color: '#FFD700', weight: 3 };                           // Black + Yellow border = Both
+        if (isReg && !isPoll) return { fillColor: '#0ea5e9', color: '#0369a1', weight: 1.5 };  // Blue = Registration
+        if (isPoll && !isReg) return { fillColor: '#FFD700', color: '#b45309', weight: 1.5 };  // Yellow = Polling
+        return { fillColor: '#10b981', color: '#047857', weight: 2 };                         // Green = Both
     },
 
     buildCentersLayer(geoJSON) {
-        const markers = window.L.markerClusterGroup ? L.markerClusterGroup({
+        // 1. Initialize Cluster Group
+        this.centersLayer = L.markerClusterGroup({
             maxClusterRadius: 40,
-            showCoverageOnHover: false
-        }) : L.layerGroup();
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            disableClusteringAtZoom: 16
+        });
+
+        this.coverageLayer = L.layerGroup();
+        const heatPoints = [];
 
         geoJSON.features.forEach(feature => {
             const d = feature.properties.data;
@@ -960,24 +1072,198 @@ export const MapModule = {
                 const lng = parseFloat(c.longitude);
                 if (isNaN(lat) || isNaN(lng)) return;
 
-                const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
-                const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
+                const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
+                const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
+                const stations = parseInt(c.polling_stations_count) || 1;
+                
                 const style = this._getCenterStyle(isReg, isPoll);
 
+                // Feature 3: Polling Station Size Indicator
+                const radius = Math.max(6, Math.min(stations * 2, 20)); 
+                
+                // Feature 1: Proportional CircleMarker
                 const marker = L.circleMarker([lat, lng], {
-                    radius: 6,
+                    radius: radius,
                     fillColor: style.fillColor,
-                    fillOpacity: 0.95,
+                    fillOpacity: 0.8,
                     color: style.color,
-                    weight: style.weight
+                    weight: style.weight,
+                    title: c.center_name // for search
                 });
 
-                marker.on('click', () => this._openCenterModal(c, d, isReg, isPoll));
-                markers.addLayer(marker);
+                // Add permanent small label (Feature 9: Center Names)
+                marker.bindTooltip(`${c.center_name || 'Center'}`, {
+                    permanent: true,
+                    direction: 'right',
+                    className: 'center-label',
+                    offset: [radius, 0]
+                });
+
+                // Feature 4: Center Info Popup
+                const popupHtml = `
+                    <div class="center-popup">
+                        <div class="cp-header">${c.center_name || 'Center'}</div>
+                        <div class="cp-body">
+                            <div class="cp-row"><span>District:</span> <strong>${d.dist_name || '—'}</strong></div>
+                            <div class="cp-row"><span>Type:</span> <strong>${isReg && isPoll ? 'Both' : (isReg ? 'Registration' : 'Polling')}</strong></div>
+                            <div class="cp-row"><span>Stations:</span> <strong>${stations}</strong></div>
+                            <div class="cp-row"><span>Voters:</span> <strong>${(c.registered_voters || 0).toLocaleString()}</strong></div>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupHtml, { className: 'custom-center-popup' });
+
+                // Feature 6: Coverage Visualization (1km radius)
+                const coverage = L.circle([lat, lng], {
+                    radius: 1000,
+                    color: '#6366f1',
+                    weight: 1,
+                    fillOpacity: 0.05,
+                    interactive: false
+                });
+
+                this.centersLayer.addLayer(marker);
+                this.coverageLayer.addLayer(coverage);
+
+                // Feature 7: Heatmap Points
+                heatPoints.push([lat, lng, 0.5]);
             });
         });
 
-        this.centersLayer = markers;
+        // Initialize Heatmap
+        this.heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 14 });
+    },
+
+    buildAdvancedMapControls() {
+        if (!this.map) return;
+        
+        const controls = L.control({ position: 'topright' });
+        controls.onAdd = () => {
+            const div = L.DomUtil.create('div', 'map-layer-controls glass-panel');
+            div.innerHTML = `
+                <div class="lc-title">Map Layers</div>
+                <label><input type="checkbox" id="chk-centers" checked> Show Centers</label>
+                <label><input type="checkbox" id="chk-coverage"> Coverage Range</label>
+                <div id="coverage-radius-wrap" style="display:none; flex-direction:column; gap:4px; margin:4px 0 8px 24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size:10px; color:var(--c-text-3);">Radius: <span id="radius-val">1.0</span> km</div>
+                        <input type="number" id="radius-input" value="1000" min="100" max="10000" style="width:50px; font-size:9px; background:rgba(255,255,255,0.05); border:1px solid var(--c-border); color:white; border-radius:3px;">
+                    </div>
+                    <input type="range" id="radius-slider" min="200" max="5000" step="100" value="1000" style="width:100%; cursor:pointer;">
+                    <div style="font-size:9px; color:var(--c-text-3); font-style:italic;">Manual Buffer (m)</div>
+                </div>
+                
+                <label><input type="checkbox" id="chk-heatmap"> Density Heatmap</label>
+                <div id="heatmap-options-wrap" style="display:none; flex-direction:column; gap:8px; margin:4px 0 8px 24px;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <div style="font-size:10px; color:var(--c-text-3);">Radius: <span id="heat-radius-val">25</span>px</div>
+                        <input type="range" id="heat-radius-slider" min="5" max="60" step="1" value="25" style="width:100%; cursor:pointer;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <div style="font-size:10px; color:var(--c-text-3);">Intensity: <span id="heat-blur-val">15</span>px (Blur)</div>
+                        <input type="range" id="heat-blur-slider" min="5" max="50" step="1" value="15" style="width:100%; cursor:pointer;">
+                    </div>
+                </div>
+            `;
+            
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        controls.addTo(this.map);
+
+        // Bind events
+        setTimeout(() => {
+            document.getElementById('chk-centers')?.addEventListener('change', e => {
+                if (e.target.checked) this.centersLayer.addTo(this.map);
+                else this.centersLayer.remove();
+            });
+            
+            const coverageWrap = document.getElementById('coverage-radius-wrap');
+            const radiusVal = document.getElementById('radius-val');
+            const radiusSlider = document.getElementById('radius-slider');
+            const radiusInput = document.getElementById('radius-input');
+            
+            document.getElementById('chk-coverage')?.addEventListener('change', e => {
+                const show = e.target.checked;
+                if (show) {
+                    this.coverageLayer.addTo(this.map);
+                    if (coverageWrap) coverageWrap.style.display = 'flex';
+                } else {
+                    this.coverageLayer.remove();
+                    if (coverageWrap) coverageWrap.style.display = 'none';
+                }
+            });
+
+            const updateRadius = (newR) => {
+                const r = parseInt(newR) || 0;
+                if (radiusSlider) radiusSlider.value = r;
+                if (radiusInput) radiusInput.value = r;
+                if (radiusVal) radiusVal.innerText = (r / 1000).toFixed(1);
+                
+                // Update all circles in the coverage layer
+                if (this.coverageLayer) {
+                    this.coverageLayer.eachLayer(layer => {
+                        if (layer.setRadius) layer.setRadius(r);
+                    });
+                }
+            };
+
+            radiusSlider?.addEventListener('input', e => updateRadius(e.target.value));
+            radiusInput?.addEventListener('input', e => updateRadius(e.target.value));
+
+            // Feature: Heatmap Controls
+            const heatWrap = document.getElementById('heatmap-options-wrap');
+            const heatRadiusSlider = document.getElementById('heat-radius-slider');
+            const heatRadiusVal = document.getElementById('heat-radius-val');
+            const heatBlurSlider = document.getElementById('heat-blur-slider');
+            const heatBlurVal = document.getElementById('heat-blur-val');
+
+            document.getElementById('chk-heatmap')?.addEventListener('change', e => {
+                const show = e.target.checked;
+                if (show) {
+                    this.heatLayer.addTo(this.map);
+                    if (heatWrap) heatWrap.style.display = 'flex';
+                } else {
+                    this.heatLayer.remove();
+                    if (heatWrap) heatWrap.style.display = 'none';
+                }
+            });
+
+            const updateHeatmap = () => {
+                const r = parseInt(heatRadiusSlider.value);
+                const b = parseInt(heatBlurSlider.value);
+                if (heatRadiusVal) heatRadiusVal.innerText = r;
+                if (heatBlurVal) heatBlurVal.innerText = b;
+                
+                if (this.heatLayer) {
+                    this.heatLayer.setOptions({ radius: r, blur: b });
+                }
+            };
+
+            heatRadiusSlider?.addEventListener('input', updateHeatmap);
+            heatBlurSlider?.addEventListener('input', updateHeatmap);
+        }, 500);
+    },
+
+    _initSearchControl() {
+        if (!this.map || !this.centersLayer) return;
+
+        this.searchControl = new L.Control.Search({
+            layer: this.centersLayer,
+            initial: false,
+            propertyName: 'title', // We set this on CircleMarker options
+            marker: false,
+            zoom: 16,
+            moveToLocation: (latlng) => {
+                this.map.setView(latlng, 16);
+            }
+        });
+
+        this.searchControl.on('search:locationfound', (e) => {
+            if (e.layer.openPopup) e.layer.openPopup();
+        });
+
+        this.map.addControl(this.searchControl);
     },
 
     toggleCentersLayer(show) {
@@ -1159,7 +1445,7 @@ export const MapModule = {
         }
 
         const self = this;
-        this.legendControl = L.control({ position: 'bottomright' });
+        this.legendControl = L.control({ position: 'bottomleft' });
         this.legendControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
             const configs = {
@@ -1168,7 +1454,8 @@ export const MapModule = {
                 id_collected: { label: 'ID Cards Collected', stops: self.modeRanges?.id_collected || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '%' },
                 votes: { label: 'Valid Votes', stops: self.modeRanges?.votes || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
                 invalid: { label: 'Invalid Votes', stops: self.modeRanges?.invalid || [0, 2, 5, 10, 20], colors: ['#16a34a', '#4ade80', '#facc15', '#f97316', '#ef4444'], suffix: '%' },
-                winner: { label: 'Winner', stops: [], colors: [] }
+                winner: { label: 'Winner', stops: [], colors: [] },
+                margin: { label: 'Margin of Victory', stops: [0, 5, 15, 30], colors: ['#dbeafe', '#60a5fa', '#2563eb', '#1e40af'], suffix: '%', labels: ['Very Close (0-5%)', 'Competitive (5-15%)', 'Strong (15-30%)', 'Landslide (30%+)'] }
             };
             const cfg = configs[self.currentMode] || configs.turnout;
             div.innerHTML = `<strong>${cfg.label}</strong>`;

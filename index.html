@@ -23,6 +23,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
+    <!-- Leaflet Heatmap -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <!-- Leaflet Search -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-search@3.0.9/dist/leaflet-search.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
+
     <!-- html2canvas & jsPDF -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -34,7 +41,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css?v=70">
+    <link rel="stylesheet" href="css/style.css?v=210">
 </head>
 
 <body>
@@ -140,12 +147,13 @@
                 <div id="party-list" class="party-list">
                     <div class="loading-msg">Loading…</div>
                 </div>
+                <div class="sidebar-resizer resizer-left" id="resizer-left"></div>
             </aside>
 
-            <!-- CENTER: KPIs + Map -->
-            <div class="center-column">
-                <!-- KPI Row -->
-                <div class="kpi-row-wrapper">
+            <!-- Main Content Area (Map + Search) -->
+            <div class="center-area">
+                <!-- Top KPI Bar -->
+                <div class="kpi-bar glass-panel m-3">
                     <div class="kpi-row">
                         <div class="kpi-card">
                             <div class="kpi-label">Candidates</div>
@@ -187,34 +195,69 @@
                 </div>
             </div>
 
-            <!-- RIGHT: Charts Panel -->
-            <aside class="charts-panel" id="charts-sidebar">
-                <div class="charts-top"
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <!-- RIGHT Sidebar: Charts -->
+            <aside class="sidebar charts-sidebar" id="charts-sidebar">
+                <div class="sidebar-resizer resizer-right" id="resizer-right"></div>
+                <div class="sidebar-top">
+                    <span class="sidebar-title">Analytics</span>
                     <button class="toggle-btn" id="toggle-charts" title="Toggle Panel">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 18l6-6-6-6" />
                         </svg>
                     </button>
-                    <div class="panel-title" id="panel-context" style="margin-bottom:0; text-align:right;">National
-                        Overview</div>
                 </div>
-                <div class="chart-block">
-                    <div class="chart-title">Seats Won by Party</div>
-                    <canvas id="seatsWonChart"></canvas>
+                
+                <!-- Seat Majority Tracker -->
+                <div id="majority-tracker" class="majority-tracker-container">
+                    <!-- Injected by UIController -->
                 </div>
-                <div class="chart-block">
-                    <div class="chart-title">Votes Received by Party</div>
-                    <canvas id="partyVotesChart"></canvas>
-                </div>
-                <div class="chart-block">
-                    <div class="chart-title">Gender Representation (Cand. vs Winners)</div>
-                    <canvas id="genderRepChart"></canvas>
-                </div>
-                <div class="chart-block">
-                    <div class="chart-title">Votes vs Seats Efficiency</div>
-                    <canvas id="efficiencyChart"></canvas>
+
+                <div class="sidebar-scroll">
+                    <!-- 3: Gender Split -->
+                    <div class="chart-block" style="height: auto; flex: none;">
+                        <div class="chart-title">Elected Gender Split</div>
+                        <div style="height: 70px; position: relative;">
+                            <canvas id="genderChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 4: District Competitiveness -->
+                    <div class="chart-block chart-block-expandable" id="competitiveness-block" style="height: auto; flex: none;">
+                        <div class="chart-title">
+                            District Competitiveness
+                            <button class="chart-expand-btn" id="compete-expand-btn" title="Show all">▼</button>
+                        </div>
+                        <div id="competitivenessChart" class="compete-container"></div>
+                    </div>
+
+                    <!-- 1: Vote Share (Doughnut) -->
+                    <div class="chart-block" style="height: 260px; flex: none;">
+                        <div class="chart-title">Vote Share by Party (%)</div>
+                        <canvas id="voteShareChart"></canvas>
+                    </div>
+
+                    <!-- 2: Seat Share (Horizontal Bar) -->
+                    <div class="chart-block" style="height: auto; min-height: 150px; flex: none;">
+                        <div class="chart-title">Seat Share by Party (%)</div>
+                        <div style="height: auto; min-height: 120px; position: relative;">
+                            <canvas id="seatShareChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 5: Council Layout -->
+                    <div class="chart-block" style="height: auto; flex: none; min-height: 200px;">
+                        <div class="chart-title">Council Seat Layout</div>
+                        <div id="councilLayoutChart" class="parliament-container"></div>
+                    </div>
+
+                    <!-- 6: Elected Candidates -->
+                    <div class="chart-block" id="elected-candidates-block" style="display:none;">
+                        <div class="chart-title">Elected Candidates</div>
+                        <div class="dd-candidates-list" id="dd-candidates-list" style="overflow-y:auto; flex:1; margin-top:8px;">
+                            <!-- Table injected by JS -->
+                            <div class="dd-empty-msg" style="padding-top:10px;text-align:center;font-size:10px;color:var(--c-text-3);">No candidate data available for this selection.</div>
+                        </div>
+                    </div>
                 </div>
             </aside>
         </div>
@@ -291,99 +334,12 @@
                 COMMISSION</span>
         </footer>
 
-        <!-- ── DISTRICT DETAILS PANEL (Full Width) ─────────── -->
-        <section id="district-details-container" class="district-details-section" style="display:none;">
-            <div class="dd-header">
-                <div class="dd-title">
-                    <span class="dd-badge" id="dd-category">Cat A</span>
-                    <h2 id="dd-name">District Name</h2>
-                    <span class="dd-subtitle" id="dd-state">State Name</span>
-                </div>
-                <button class="close-dd-btn" id="hide-district-panel">&times;</button>
-            </div>
-            
-            <div class="dd-content">
-                <!-- Group 1: General Stats -->
-                <div class="dd-card">
-                    <div class="dd-card-label">Electoral Statistics</div>
-                    <div class="dd-grid">
-                        <div class="dd-stat"><span>Registered</span> <strong id="dd-reg">—</strong></div>
-                        <div class="dd-stat"><span>ID Collected</span> <strong id="dd-id">—</strong></div>
-                        <div class="dd-stat"><span>Turnout</span> <strong id="dd-turnout">—</strong></div>
-                        <div class="dd-stat"><span>National Rank</span> <strong id="dd-rank">—</strong></div>
-                    </div>
-                </div>
 
-                <!-- Group 2: Votes Details -->
-                <div class="dd-card">
-                    <div class="dd-card-label">Votes Breakdown</div>
-                    <div class="dd-grid">
-                        <div class="dd-stat"><span>Valid Votes</span> <strong id="dd-valid">—</strong></div>
-                        <div class="dd-stat"><span>Invalid Votes</span> <strong id="dd-invalid">—</strong><span class="dd-perc" id="dd-invalid-perc">0%</span></div>
-                        <div class="dd-stat"><span>Total Cast</span> <strong id="dd-total-cast">—</strong></div>
-                    </div>
-                </div>
 
-                <!-- Group 3: Operations -->
-                <div class="dd-card">
-                    <div class="dd-card-label">Operations & Staff</div>
-                    <div class="dd-grid">
-                        <div class="dd-stat"><span>Polling Centers</span> <strong id="dd-centers">—</strong></div>
-                        <div class="dd-stat"><span>Polling Stations</span> <strong id="dd-stations">—</strong></div>
-                        <div class="dd-stat"><span>Total Staff</span> <strong id="dd-staff">—</strong></div>
-                    </div>
-                </div>
 
-                <!-- Group 4: Results Summary -->
-                <div class="dd-card dd-winner-card">
-                    <div class="dd-card-label">Winning Party</div>
-                    <div class="dd-winner-info" id="dd-winner-box">
-                        <img src="" class="dd-winner-logo" id="dd-winner-logo" alt="">
-                        <div class="dd-winner-text">
-                            <div class="dd-winner-name" id="dd-winner-name">—</div>
-                            <div class="dd-winner-stats" id="dd-winner-stats">0 Seats · 0 Votes</div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Group 5: Elected Candidates -->
-                <div class="dd-card dd-candidates-card">
-                    <div class="dd-card-label">Elected Candidates</div>
-                    <div class="dd-candidates-list" id="dd-candidates-list">
-                        <!-- Table injected by JS -->
-                        <div class="dd-empty-msg">No candidate data available for this selection.</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- MOBILE FAB (Visible only on small screens via CSS) -->
-        <div class="mobile-fab-container">
-            <button id="mobile-menu-toggle" class="fab-btn" title="Toggle Filters">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-            <button id="mobile-toggle-parties" class="fab-btn" title="Toggle Parties">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-            </button>
-            <button id="mobile-toggle-charts" class="fab-btn" title="Toggle Charts">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 20V10"></path>
-                    <path d="M12 20V4"></path>
-                    <path d="M6 20v-6"></path>
-                </svg>
-            </button>
-        </div>
+        <!-- Mobile components removed (Desktop only) -->
     </div>
-    <script type="module" src="js/main.js?v=162"></script>
+    <script type="module" src="js/main.js?v=190"></script>
 </body>
-
 </html>

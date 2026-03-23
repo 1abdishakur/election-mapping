@@ -1,8 +1,8 @@
-import { DataLoader } from './dataLoader.js?v=162';
-import { DataJoiner } from './dataJoiner.js?v=162';
-import { MapModule } from './map.js?v=162';
-import { ChartsModule } from './charts.js?v=162';
-import { UIController } from './ui.js?v=162';
+import { DataLoader } from './dataLoader.js?v=170';
+import { DataJoiner } from './dataJoiner.js?v=170';
+import { MapModule } from './map.js?v=174';
+import { ChartsModule } from './charts.js?v=171';
+import { UIController } from './ui.js?v=172';
 
 /** Central Application State */
 const AppState = {
@@ -22,7 +22,7 @@ class ElectionDashboard {
     }
 
     async init() {
-        console.log('[App] Initializing…');
+
 
         const [rawTables, geoJSON] = await Promise.all([
             DataLoader.loadAllTables(),
@@ -31,7 +31,7 @@ class ElectionDashboard {
 
         // Debug: log what we got
         Object.entries(rawTables).forEach(([k, v]) => {
-            console.log(`[Data] ${k}: ${v.length} rows`);
+
         });
 
         this.allTables = rawTables;
@@ -50,7 +50,7 @@ class ElectionDashboard {
             }))
             .sort((a, b) => b.seats_won - a.seats_won);
 
-        console.log(`[App] Parties from results: ${rawParties.length}, Districts: ${this.masterData.length}`);
+
 
         // Wire UI
         UIController.init({
@@ -78,7 +78,7 @@ class ElectionDashboard {
 
         // Charts
         ChartsModule.init();
-        ChartsModule.update(this.globalSummary, this.parties);
+        ChartsModule.update(this.globalSummary, this.parties, this.masterData);
 
         setTimeout(() => {
             const sel = document.getElementById('choropleth-mode');
@@ -86,14 +86,14 @@ class ElectionDashboard {
             UIController.setContext('National Overview', modeLabel);
 
             UIController.hideLoading();
-            console.log('[App] Ready');
+
             this.startLiveSync();
         }, 300);
     }
 
     // ── Live Data Sync ────────────────────────────────────────
     startLiveSync() {
-        console.log('[App] Live Sync started (interval: 30s)');
+
         setInterval(async () => {
             await this.refreshData();
         }, 30000);
@@ -158,8 +158,9 @@ class ElectionDashboard {
                 const summary = DataJoiner.districtToSummary(d);
                 UIController.updateKPIs(summary, true);
                 UIController.updateMiniPanel(summary);
-                ChartsModule.update(summary, this.parties);
+                ChartsModule.update(summary, this.parties, [d], true);
                 this.updatePartyList(summary, true);
+                UIController.updateMajorityTracker(summary, this.parties);
             }
         } else {
             // Apply global or state calculations
@@ -167,8 +168,9 @@ class ElectionDashboard {
             const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
             UIController.updateKPIs(summary);
             UIController.updateMiniPanel(summary);
-            ChartsModule.update(summary, this.parties);
+            ChartsModule.update(summary, this.parties, filtered);
             this.updatePartyList(summary);
+            UIController.updateMajorityTracker(summary, this.parties);
         }
     }
 
@@ -188,9 +190,10 @@ class ElectionDashboard {
         const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
         UIController.updateKPIs(summary);
         UIController.updateMiniPanel(summary);
-        ChartsModule.update(summary, this.parties);
+        ChartsModule.update(summary, this.parties, filtered);
 
         this.updatePartyList(summary);
+        UIController.updateMajorityTracker(summary, this.parties);
 
         const label = code === 'all' ? 'National Overview' : `${code} — State View`;
         const sel = document.getElementById('choropleth-mode');
@@ -198,7 +201,7 @@ class ElectionDashboard {
         UIController.setContext(label, modeLabel);
         
         // Show State/National aggregate data in the bottom panel
-        UIController.updateDistrictDetailPanel(summary, label, code === 'all' ? 'NATIONAL' : `STATE — ${code}`, 'SUMMARY');
+        UIController.updateDistrictDetailPanel(summary);
     }
 
     onDistrictChange(code) {
@@ -220,7 +223,7 @@ class ElectionDashboard {
             UIController.setContext('State Overview', modeLabel);
             
             // Re-show state summary in the bottom panel when reverting from district to state view
-            UIController.updateDistrictDetailPanel(summary, `${AppState.selectedState} State View`, AppState.selectedState, 'SUMMARY');
+            UIController.updateDistrictDetailPanel(summary);
             return;
         }
 
@@ -298,7 +301,7 @@ class ElectionDashboard {
 
         // Re-highlight the selected item since we just re-rendered the list
         setTimeout(() => {
-            const items = document.querySelectorAll('.party-item');
+            const items = document.querySelectorAll('.party-card');
             items.forEach(it => {
                 if (it.dataset.code === partyCode) it.classList.add('selected');
             });
@@ -350,7 +353,7 @@ class ElectionDashboard {
 
         UIController.updateKPIs(this.globalSummary);
         UIController.updateMiniPanel(this.globalSummary);
-        ChartsModule.update(this.globalSummary, this.parties);
+        ChartsModule.update(this.globalSummary, this.parties, this.masterData);
         this.updatePartyList(this.globalSummary, false);
 
         MapModule.setMode('default');
@@ -366,7 +369,7 @@ class ElectionDashboard {
         const summary = DataJoiner.districtToSummary(district);
         UIController.updateKPIs(summary, true);
         UIController.updateMiniPanel(summary);
-        ChartsModule.update(summary, this.parties);
+        ChartsModule.update(summary, this.parties, [district], true);
 
         this.updatePartyList(summary, true);
         MapModule.showDistrictCenters(district.dist_code || district.district_code);
@@ -375,7 +378,7 @@ class ElectionDashboard {
         const sel = document.getElementById('choropleth-mode');
         const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
         UIController.setContext(district.district_name, modeLabel);
-        UIController.updateDistrictDetailPanel(district, district.district_name, district.state?.state_name, `CAT ${district.district_category || '—'}`);
+        UIController.updateDistrictDetailPanel(district);
     }
 
     updatePartyList(summary, isDistrictLevel = false) {

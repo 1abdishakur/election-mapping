@@ -281,10 +281,10 @@ export const ChartsModule = {
         html += '<div class="parliament-legend">';
         parties.forEach(p => {
             if (p.seats <= 0) return;
-            html += `<span class="parliament-legend-item">`;
+            html += `<div class="parliament-legend-item">`;
             html += `<span class="parliament-legend-dot" style="background:${p.color}"></span>`;
-            html += `<span class="parliament-legend-label">${p.name.length > 12 ? p.name.substring(0, 12) + '…' : p.name} (${p.seats})</span>`;
-            html += `</span>`;
+            html += `<span class="parliament-legend-label">${p.name} (${p.seats})</span>`;
+            html += `</div>`;
         });
         html += '</div>';
 

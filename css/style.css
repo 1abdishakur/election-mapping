@@ -1765,10 +1765,11 @@ a {
 
 .parliament-legend {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px 10px;
-  padding: 10px 12px 8px;
+  flex-direction: column;
+  width: 100%;
+  /* remove horizontal alignment */
+  gap: 8px;
+  padding: 12px 14px;
   border-top: 1px solid var(--c-border);
   margin-top: auto;
 }
@@ -1776,21 +1777,23 @@ a {
 .parliament-legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  padding: 2px 0;
 }
 
 .parliament-legend-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .parliament-legend-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--c-text-2);
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .chart-title {

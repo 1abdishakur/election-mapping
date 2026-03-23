@@ -41,7 +41,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css?v=210">
+    <link rel="stylesheet" href="css/style.css?v=211">
 </head>
 
 <body>
@@ -213,6 +213,20 @@
                 </div>
 
                 <div class="sidebar-scroll">
+                    <!-- 1: Elected Candidates (Dynamic) -->
+                    <div class="chart-block" id="elected-candidates-block" style="display:none; max-height: 400px; flex: none;">
+                        <div class="chart-title">Elected Candidates</div>
+                        <div class="dd-candidates-list" id="dd-candidates-list" style="overflow-y:auto; flex:1; margin-top:8px;">
+                            <div class="dd-empty-msg" style="padding-top:10px;text-align:center;font-size:10px;color:var(--c-text-3);">No candidate data available for this selection.</div>
+                        </div>
+                    </div>
+
+                    <!-- 2: Council Layout -->
+                    <div class="chart-block" id="council-layout-block" style="height: auto; flex: none; min-height: 200px;">
+                        <div class="chart-title">Council Seat Layout</div>
+                        <div id="councilLayoutChart" class="parliament-container"></div>
+                    </div>
+
                     <!-- 3: Gender Split -->
                     <div class="chart-block" style="height: auto; flex: none;">
                         <div class="chart-title">Elected Gender Split</div>
@@ -230,32 +244,17 @@
                         <div id="competitivenessChart" class="compete-container"></div>
                     </div>
 
-                    <!-- 1: Vote Share (Doughnut) -->
+                    <!-- 5: Vote Share -->
                     <div class="chart-block" style="height: 260px; flex: none;">
                         <div class="chart-title">Vote Share by Party (%)</div>
                         <canvas id="voteShareChart"></canvas>
                     </div>
 
-                    <!-- 2: Seat Share (Horizontal Bar) -->
+                    <!-- 6: Seat Share -->
                     <div class="chart-block" style="height: auto; min-height: 150px; flex: none;">
                         <div class="chart-title">Seat Share by Party (%)</div>
                         <div style="height: auto; min-height: 120px; position: relative;">
                             <canvas id="seatShareChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- 5: Council Layout -->
-                    <div class="chart-block" style="height: auto; flex: none; min-height: 200px;">
-                        <div class="chart-title">Council Seat Layout</div>
-                        <div id="councilLayoutChart" class="parliament-container"></div>
-                    </div>
-
-                    <!-- 6: Elected Candidates -->
-                    <div class="chart-block" id="elected-candidates-block" style="display:none;">
-                        <div class="chart-title">Elected Candidates</div>
-                        <div class="dd-candidates-list" id="dd-candidates-list" style="overflow-y:auto; flex:1; margin-top:8px;">
-                            <!-- Table injected by JS -->
-                            <div class="dd-empty-msg" style="padding-top:10px;text-align:center;font-size:10px;color:var(--c-text-3);">No candidate data available for this selection.</div>
                         </div>
                     </div>
                 </div>
@@ -340,6 +339,6 @@
 
         <!-- Mobile components removed (Desktop only) -->
     </div>
-    <script type="module" src="js/main.js?v=190"></script>
+    <script type="module" src="js/main.js?v=193"></script>
 </body>
 </html>

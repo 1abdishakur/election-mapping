@@ -137,21 +137,16 @@ export const UIController = {
         }
 
         btn.addEventListener('click', () => {
-            // If we are about to enter fullscreen, collapse sidebars
-            const isEntering = !(document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-            
-            if (this.sb && this.cb) {
-                if (isEntering) {
-                    this.sb.classList.add('collapsed');
-                    this.cb.classList.add('collapsed');
-                } else {
-                    this.sb.classList.remove('collapsed');
-                    this.cb.classList.remove('collapsed');
-                }
-            }
-            
-            if (this.updateGrid) this.updateGrid();
             toggleFullScreen();
+        });
+        
+        // Listen for browser fullscreen changes (Esc key or button)
+        ['fullscreenchange', 'mozfullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                updateIcon();
+                // Critical: Force Leaflet and Charts to recalculate their height/width
+                window.dispatchEvent(new Event('resize'));
+            });
         });
         
         const updateIcon = () => {

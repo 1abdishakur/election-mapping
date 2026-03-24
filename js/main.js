@@ -1,6 +1,6 @@
 import { DataLoader } from './dataLoader.js?v=170';
 import { DataJoiner } from './dataJoiner.js?v=170';
-import { MapModule } from './map.js?v=174';
+import { MapModule } from './map.js?v=220';
 import { ChartsModule } from './charts.js?v=171';
 import { UIController } from './ui.js?v=172';
 

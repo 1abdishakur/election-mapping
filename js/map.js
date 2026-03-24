@@ -1,6 +1,7 @@
 /**
  * Map Module — Leaflet + multiple tile layers + measure + center markers
  */
+import { DataJoiner } from './dataJoiner.js';
 
 export const MapModule = {
     choroplethMode: 'default',
@@ -952,14 +953,20 @@ export const MapModule = {
         }
 
         const color = this.getColor(d);
-        const isSelected = this.selectedDistrictCode && (d.district_code === this.selectedDistrictCode || d.dist_code === this.selectedDistrictCode);
+        // Use robust code matching from DataJoiner
+        const isSelected = this.selectedDistrictCode && (
+            DataJoiner.compareCodes(d.district_code, this.selectedDistrictCode) || 
+            DataJoiner.compareCodes(d.dist_code, this.selectedDistrictCode)
+        );
 
         // District borders: now use the same vivid color as the state's outer dotted line
+        // Selection is made much "stronger" as requested (weight 6, opacity 1)
         return {
             fillColor: color,
-            fillOpacity: this.currentMode === 'default' ? 0.2 : 0.72,
+            fillOpacity: this.currentMode === 'default' ? (isSelected ? 0.35 : 0.2) : 0.72,
             color: isSelected ? '#fbbf24' : stateColor,
-            weight: isSelected ? 3 : 1.2,
+            weight: isSelected ? 6 : 1.2,
+            opacity: isSelected ? 1 : 0.8,
             dashArray: null
         };
     },
@@ -1377,7 +1384,7 @@ export const MapModule = {
         let targetLayer = null;
         this.geoJSONLayer.eachLayer(layer => {
             const d = layer.feature?.properties?.data;
-            if (d && (d.dist_code === districtCode || d.district_code === districtCode)) {
+            if (d && (DataJoiner.compareCodes(d.dist_code, districtCode) || DataJoiner.compareCodes(d.district_code, districtCode))) {
                 targetLayer = layer;
             }
         });
@@ -1386,6 +1393,7 @@ export const MapModule = {
         this.geoJSONLayer.setStyle(f => this.styleFeature(f));
 
         if (targetLayer) {
+            targetLayer.bringToFront();
             this.map.fitBounds(targetLayer.getBounds(), { padding: [20, 20], maxZoom: 16 });
         }
     },

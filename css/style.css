@@ -101,9 +101,9 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
   
-  /* Secondary Support Support (Minimum) */
+  /* Target minimum width: 1366px */
   min-width: 1366px;
-  min-height: 700px;
+  overflow: hidden;
 }
 
 button {
@@ -127,10 +127,10 @@ a {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
-
-.app { height: 100vh; overflow: hidden; }
 
 /* ════════════════════════════════════════════════════════
    NAVBAR

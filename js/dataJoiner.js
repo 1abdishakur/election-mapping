@@ -209,24 +209,28 @@ export const DataJoiner = {
         let contestedCount = 0;
 
         district.party_results.forEach(pr => {
-            const pc = pr.party_code;
+            const pc = String(pr.party_code || '').trim();
+            if (!pc) return;
+
             partyVotes[pc] = pr.votes_received || 0;
             partySeats[pc] = pr.seats_won || 0;
-            genderStats.male += pr.male_seats_won || 0;
-            genderStats.female += pr.female_seats_won || 0;
+            genderStats.male += (pr.male_seats_won || 0);
+            genderStats.female += (pr.female_seats_won || 0);
 
-            totalCands += (pr.cadidates_submited || 0);
-            femaleCands += (pr.female_cadidates || 0);
-            maleCands += (pr.male_cadidates || 0);
+            // Handle both correct and misspelled candidates field
+            const cands = pr.candidates_submitted || pr.cadidates_submited || 0;
+            totalCands += cands;
+            femaleCands += (pr.female_candidates || pr.female_cadidates || 0);
+            maleCands += (pr.male_candidates || pr.male_cadidates || 0);
 
-            const isContested = String(pr.is_contested).trim().toUpperCase() === 'TRUE';
+            const isContested = String(pr.is_contested || '').trim().toUpperCase() === 'TRUE';
             if (isContested) contestedCount++;
 
             partyDetails[pc] = {
-                is_contested: pr.is_contested,
-                candidates_submitted: pr.cadidates_submited || 0,
-                male_candidates: pr.male_cadidates || 0,
-                female_candidates: pr.female_cadidates || 0,
+                is_contested: isContested,
+                candidates_submitted: cands,
+                male_candidates: pr.male_candidates || pr.male_cadidates || 0,
+                female_candidates: pr.female_candidates || pr.female_cadidates || 0,
                 male_seats_won: pr.male_seats_won || 0,
                 female_seats_won: pr.female_seats_won || 0
             };
@@ -301,13 +305,18 @@ export const DataJoiner = {
         // Deep copy and normalize headers + values
         const processed = {};
         Object.entries(tables).forEach(([key, table]) => {
-            processed[key] = table.map(row => {
+            processed[key] = (table || []).map(row => {
                 const newRow = {};
                 Object.keys(row).forEach(header => {
-                    const cleanHeader = header.trim();
+                    const cleanHeader = header.trim().toLowerCase();
                     let val = row[header];
                     
-                    if (numericFields.includes(cleanHeader)) {
+                    // Support standard fields and common data typos found in source sheets
+                    const isNumeric = numericFields.includes(cleanHeader) || 
+                                     cleanHeader.includes('cadidate') || 
+                                     cleanHeader.includes('submited');
+
+                    if (isNumeric) {
                         if (typeof val === 'string') {
                             val = val.replace(/,/g, '').trim();
                         }
@@ -476,21 +485,38 @@ export const DataJoiner = {
     },
 
     /**
+     * Cross-table code matching that handles leading zeros (e.g., '01' === '1')
+     */
+    compareCodes(a, b) {
+        if (a === b) return true;
+        if (a == null || b == null) return false;
+        const sa = String(a).trim();
+        const sb = String(b).trim();
+        if (sa === sb) return true;
+        // Numeric comparison for codes like '01' vs '1'
+        const na = parseInt(sa, 10);
+        const nb = parseInt(sb, 10);
+        if (!isNaN(na) && !isNaN(nb)) return na === nb;
+        return sa.toLowerCase() === sb.toLowerCase();
+    },
+
+    /**
      * Attach processed district data to GeoJSON features
      */
     attachToGeoJSON(geoJSON, districtMaster) {
         if (!geoJSON || !geoJSON.features) return geoJSON;
 
-        const districtLookup = districtMaster.reduce((acc, d) => {
-            acc[d.dist_code || d.district_code] = d;
-            return acc;
-        }, {});
-
         geoJSON.features.forEach(feature => {
-            const districtCode = String(feature.properties.dist_code || '').trim();
-            feature.properties.data = districtLookup[districtCode] || null;
+            const featCode = feature.properties.district_code || feature.properties.dist_code;
+            
+            // Find match using robust comparison
+            const match = districtMaster.find(d => 
+                this.compareCodes(d.district_code, featCode) || 
+                this.compareCodes(d.dist_code, featCode)
+            );
 
-            // Helpful metadata for choropleth styling
+            feature.properties.data = match || null;
+
             if (feature.properties.data) {
                 const d = feature.properties.data;
                 feature.properties.turnout = d.turnout_perc;

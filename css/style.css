@@ -32,9 +32,20 @@
   --navbar-h: 64px;
   --footer-h: 34px;
   --sidebar-w: 280px;
-  --charts-w: 330px;
-  --radius: 8px;
+  --charts-w: 320px;
+  --radius: 12px;
   --font: 'Inter', -apple-system, sans-serif;
+}
+
+/* Primary Target: 1920x1080 Scale */
+@media (min-width: 1920px) {
+  :root {
+    --sidebar-w: 320px;
+    --charts-w: 360px;
+  }
+  body {
+    font-size: 14.5px;
+  }
 }
 
 [data-theme="dark"] {
@@ -62,11 +73,7 @@
   --btn-sec-text: #E5E7EB;
 }
 
-/* ── Desktop Layout — Fix values ─────────────────── */
-:root {
-  --sidebar-w: 280px;
-  --charts-w: 280px;
-}
+/* Layout targets set in main root + media query above */
 
 
 
@@ -91,8 +98,12 @@ body {
   font-family: var(--font);
   background: var(--c-bg);
   color: var(--c-text);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.5;
+  
+  /* Secondary Support Support (Minimum) */
+  min-width: 1366px;
+  min-height: 700px;
 }
 
 button {
@@ -1061,12 +1072,7 @@ a {
   background: var(--c-bg);
 }
 
-@media (max-width: 900px) {
-  .map-container {
-    height: 450px;
-    flex: none;
-  }
-}
+/* Removed mobile media query (Desktop Only target 1366x768+) */
 
 .map-context-badge {
   position: absolute;
@@ -1233,125 +1239,7 @@ a {
    RESPONSIVE QUERIES
 ════════════════════════════════════════════════════════ */
 
-@media (max-width: 1200px) {
-  .body-grid {
-    grid-template-columns: 0px 1fr var(--charts-w) !important;
-  }
-  .sidebar {
-    position: fixed;
-    left: -100%;
-    top: 64px;
-    bottom: 40px;
-    width: 250px;
-    transition: left 0.3s ease;
-    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
-    background: var(--c-surface);
-    z-index: 1200;
-  }
-}
-
-@media (max-width: 900px) {
-  .body-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-areas: 
-      "center"
-      "sidebar"
-      "charts" !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  
-  .center-column { grid-area: center; width: 100%; flex: none; }
-  .sidebar { grid-area: sidebar; }
-  .charts-panel { grid-area: charts; }
-  
-  .sidebar, .charts-panel {
-    position: static !important;
-    width: 100% !important;
-    height: auto !important;
-    max-width: none !important;
-    border: none !important;
-    border-top: 1px solid var(--c-border) !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-  }
-
-  /* Sidebars as columns side-by-side on tablet/large mobile */
-  @media (min-width: 600px) {
-    .body-grid {
-      grid-template-columns: 1fr 1fr !important;
-      grid-template-areas: 
-        "center center"
-        "sidebar charts" !important;
-    }
-  }
-
-  /* Hide toggle buttons on mobile as they are no longer off-canvas */
-  #toggle-sidebar, #toggle-charts, .mobile-fab-container {
-    display: none !important;
-  }
-  
-  .sidebar.collapsed, .charts-panel.collapsed {
-    max-width: none !important;
-    min-width: 0 !important;
-  }
-  .sidebar.collapsed .party-list, .charts-panel.collapsed .chart-block {
-    display: flex !important;
-  }
-
-  .navbar-content {
-    display: none;
-    position: absolute;
-    top: 64px;
-    left: 0;
-    right: 0;
-    background: var(--c-surface);
-    flex-direction: column;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border-top: 1px solid var(--c-border);
-    margin-left: 0;
-    height: auto;
-    z-index: 1001;
-  }
-  .navbar-content.open {
-    display: flex;
-  }
-  .mobile-only-btn {
-    display: block;
-    margin-right: 0.5rem;
-  }
-  .navbar-controls {
-    flex-direction: column;
-    width: 100%;
-    align-items: stretch;
-  }
-  .control-item, .control-select, .search-box, .search-box input {
-    width: 100% !important;
-  }
-  .navbar-actions {
-    width: 100%;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  .navbar-actions .btn {
-    width: 100%;
-    height: 40px;
-    justify-content: center;
-  }
-  .navbar-badges {
-      display: none;
-  }
-  .kpi-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .mobile-fab-container {
-    display: none !important;
-  }
-}
+/* All responsive media queries for screen sizes < 1366px removed per desktop spec */
 
 .hp-name {
   font-size: 14px;

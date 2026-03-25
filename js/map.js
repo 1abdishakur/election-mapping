@@ -1305,22 +1305,28 @@ export const MapModule = {
     _applyActiveCenters() {
         if (!this.map) return;
 
-        // 1. Always remove both layers first for a clean slate
+        // 1. Always remove both known layer references first
         if (this.centersLayer) this.map.removeLayer(this.centersLayer);
         if (this.activeCentersLayer) {
             this.map.removeLayer(this.activeCentersLayer);
             this.activeCentersLayer = null;
         }
 
-        // 2. If toggle is OFF, stop here
+        // 2. Aggressive Cleanup: Find and remove any stray cluster layers that might have leaked
+        // This handles cases where references were lost due to re-initialization
+        this.map.eachLayer(layer => {
+            if (layer instanceof L.MarkerClusterGroup) {
+                this.map.removeLayer(layer);
+            }
+        });
+
+        // 3. If toggle is OFF, stop here
         if (!this.showCenters) return;
 
-        // 3. Otherwise, show what's appropriate for the current focus
+        // 4. Otherwise, show what's appropriate for the current focus
         if (this.selectedDistrictCode) {
-            // A district is selected — show only its centers
             this._renderDistrictCenters(this.selectedDistrictCode);
         } else {
-            // No district selected — show all centers
             if (this.centersLayer) this.map.addLayer(this.centersLayer);
         }
     },
@@ -1476,57 +1482,67 @@ export const MapModule = {
         this.legendControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
 
-            // 1. Default View: District Category legend + Centers legend (always shown)
+            // 1. Default View: District Category legend + Centers legend (ONLY IF TOGGLED ON)
             if (self.currentMode === 'default') {
-                // Centers dot-type key — always visible in default view
                 div.innerHTML = `
-                    <div class="legend-section centers-legend">
-                        <div class="legend-header">Election Centers</div>
+                    <div class="legend-section categories-legend">
+                        <div class="legend-header">District Categories</div>
                         <div class="legend-items">
-                            <div class="legend-item">
-                                <div class="legend-dot" style="background:#0ea5e9;"></div>
-                                <span>Registration</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-dot" style="background:#FFD700;"></div>
-                                <span>Polling</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-dot" style="background:#10b981;"></div>
-                                <span>Combined</span>
-                            </div>
+                            <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8;"></div><span>Cat A (Urban)</span></div>
+                            <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Cat B (Township)</span></div>
+                            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div><span>Cat C (Rural)</span></div>
                         </div>
                     </div>`;
 
-                // If centers layer is active, also show live totals filtered by current state/district
-                if (self.showCenters && self.geoJSONLayer) {
-                    let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
-                    self.geoJSONLayer.eachLayer(layer => {
-                        const data = layer.feature?.properties?.data;
-                        if (!data || !data.centers) return;
+                // Centers dot-type key + live stats — ONLY IF toggled ON
+                if (self.showCenters) {
+                    div.innerHTML += `
+                        <div class="legend-section centers-legend" style="margin-top:12px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 10px;">
+                            <div class="legend-header">Election Centers</div>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background:#0ea5e9;"></div>
+                                    <span>Registration</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background:#FFD700;"></div>
+                                    <span>Polling</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background:#10b981;"></div>
+                                    <span>Combined</span>
+                                </div>
+                            </div>
+                        </div>`;
 
-                        // Filter by selected state
-                        if (self.selectedState && self.selectedState !== 'all') {
-                            const layerState = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
-                            if (layerState !== self.selectedState) return;
-                        }
+                    if (self.geoJSONLayer) {
+                        let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
+                        self.geoJSONLayer.eachLayer(layer => {
+                            const data = layer.feature?.properties?.data;
+                            if (!data || !data.centers) return;
 
-                        // Filter by active district
-                        if (self._activeDistrictCode) {
-                            const layerDistrict = data.dist_code || data.district_code;
-                            if (layerDistrict !== self._activeDistrictCode) return;
-                        }
+                            // Filter by selected state
+                            if (self.selectedState && self.selectedState !== 'all') {
+                                const layerState = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
+                                if (layerState !== self.selectedState) return;
+                            }
 
-                        data.centers.forEach(c => {
-                            const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
-                            const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
-                            totalCenters++;
-                            totalStations += parseInt(c.polling_stations_count) || 0;
-                            if (isReg && isPoll) both++;
-                            else if (isReg) regOnly++;
-                            else if (isPoll) pollOnly++;
+                            // Filter by active district focus
+                            if (self.selectedDistrictCode) {
+                                const layerDistrict = data.dist_code || data.district_code;
+                                if (layerDistrict !== self.selectedDistrictCode) return;
+                            }
+
+                            data.centers.forEach(c => {
+                                const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
+                                const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
+                                totalCenters++;
+                                totalStations += parseInt(c.polling_stations_count) || 0;
+                                if (isReg && isPoll) both++;
+                                else if (isReg) regOnly++;
+                                else if (isPoll) pollOnly++;
+                            });
                         });
-                    });
 
                     if (totalCenters > 0) {
                         div.innerHTML += `

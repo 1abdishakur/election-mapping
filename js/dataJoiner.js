@@ -252,8 +252,8 @@ export const DataJoiner = {
             validPct: turnoutVotes > 0 ? (district.valid_votes / turnoutVotes) * 100 : 0,
             totalInvalid: district.invalid_votes || 0,
             invalidPct: turnoutVotes > 0 ? (district.invalid_votes / turnoutVotes) * 100 : 0,
-            pollingCentersCount: district.centers.filter(c => String(c.is_polling_center).trim().toUpperCase() === 'TRUE').length,
-            totalPollingStations: district.centers.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0),
+            pollingCentersCount: (district.centers || []).length,
+            totalPollingStations: (district.centers || []).reduce((sum, c) => sum + (c.polling_stations_count || 0), 0),
 
             totalSeats: district.total_seats || 0,
             overallWinner: district.winner || null,
@@ -267,8 +267,8 @@ export const DataJoiner = {
                 femaleWinners: genderStats.female
             },
             opStats: {
-                centers: district.centers.filter(c => String(c.is_polling_center).trim().toUpperCase() === 'TRUE').length,
-                stations: district.centers.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0)
+                centers: (district.centers || []).length,
+                stations: (district.centers || []).reduce((sum, c) => sum + (c.polling_stations_count || 0), 0)
             },
             winners: district.winners || []
         };
@@ -388,11 +388,12 @@ export const DataJoiner = {
         });
 
         let pollingCentersCount = 0;
+        let centersTotalStations = 0;
+
         districtMaster.forEach(d => {
-            if (d.centers) {
-                pollingCentersCount += d.centers.filter(c =>
-                    String(c.is_polling_center).trim().toUpperCase() === 'TRUE'
-                ).length;
+            if (d.centers && Array.isArray(d.centers)) {
+                pollingCentersCount += d.centers.length;
+                centersTotalStations += d.centers.reduce((sum, c) => sum + (parseInt(c.polling_stations_count) || 0), 0);
             }
         });
 
@@ -412,32 +413,9 @@ export const DataJoiner = {
             votes_received: partyVotes[overallWinnerCode]
         } : null;
 
-        let totalStatesCount = uniqueStates.size;
-        if (fullTables && fullTables.states && Array.isArray(fullTables.states) && fullTables.states.length > 0) {
-            totalStatesCount = fullTables.states.length;
-        }
-
-        let totalDistrictsCount = uniqueDistricts.size;
-        if (fullTables && fullTables.districts && Array.isArray(fullTables.districts) && fullTables.districts.length > 0) {
-            totalDistrictsCount = fullTables.districts.length;
-        }
-
-        let dynamicPollingCentersCount = pollingCentersCount;
-        let dynamicTotalPollingStations = totalPollingStations;
-
-        if (fullTables && fullTables.centers && Array.isArray(fullTables.centers) && fullTables.centers.length > 0) {
-            dynamicPollingCentersCount = 0;
-            dynamicTotalPollingStations = 0;
-            fullTables.centers.forEach(c => {
-                const isCenter = String(c.is_polling_center).trim().toUpperCase() === 'TRUE';
-                if (isCenter) dynamicPollingCentersCount++;
-                dynamicTotalPollingStations += (c.polling_stations_count || c.polling_stations_used || 0);
-            });
-        }
-
         return {
-            totalStates: totalStatesCount,
-            totalDistricts: totalDistrictsCount,
+            totalStates: uniqueStates.size,
+            totalDistricts: uniqueDistricts.size,
 
             candidates: {
                 total: totalCandidates,
@@ -457,8 +435,8 @@ export const DataJoiner = {
             validPct: turnoutVotes > 0 ? (totalVotes / turnoutVotes) * 100 : 0,
             totalInvalid,
             invalidPct: turnoutVotes > 0 ? (totalInvalid / turnoutVotes) * 100 : 0,
-            pollingCentersCount: dynamicPollingCentersCount,
-            totalPollingStations: dynamicTotalPollingStations,
+            pollingCentersCount,
+            totalPollingStations: centersTotalStations,
 
             totalSeats,
             overallWinner,
@@ -468,7 +446,7 @@ export const DataJoiner = {
                 maleWinners: totalMaleWinners,
                 femaleWinners: totalFemaleWinners
             },
-            opStats: { centers: dynamicPollingCentersCount, stations: dynamicTotalPollingStations },
+            opStats: { centers: pollingCentersCount, stations: centersTotalStations },
             overallTurnout: turnoutPct,
             partyVotes,
             partySeats,

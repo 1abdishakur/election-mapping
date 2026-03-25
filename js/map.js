@@ -263,7 +263,6 @@ export const MapModule = {
 
 
         this.renderDistricts(geoJSON);
-        this.buildCentersLayer(geoJSON);
         this.buildAdvancedMapControls();
         this._initSearchControl();
         this.addMiniMap(geoJSON);
@@ -271,6 +270,9 @@ export const MapModule = {
         // Add Toggle Controls to Map
         this.addToggleControl();
         this.addModeControl();
+
+        // Final Sync: Ensure map state matches our visibility flags
+        this._applyActiveCenters();
 
         // ── Zoom to ONLY districts that have election data on launch ──
         const dataBounds = this._getDataBounds(geoJSON);
@@ -1482,32 +1484,19 @@ export const MapModule = {
             // 1. Default View: Centers legend (ONLY IF TOGGLED ON)
             if (self.currentMode === 'default') {
                 if (self.showCenters) {
-                    div.innerHTML = `
-                        <div class="legend-section centers-legend">
-                            <div class="legend-header">Election Centers</div>
-                            <div class="legend-items">
-                                <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Registration</span></div>
-                                <div class="legend-item"><div class="legend-dot" style="background:#FFD700;"></div><span>Polling</span></div>
-                                <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Combined</span></div>
-                            </div>
-                        </div>`;
-
+                    let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
                     if (self.geoJSONLayer) {
-                        let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
                         self.geoJSONLayer.eachLayer(layer => {
                             const data = layer.feature?.properties?.data;
                             if (!data || !data.centers) return;
-
                             if (self.selectedState && self.selectedState !== 'all') {
                                 const st = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
                                 if (st !== self.selectedState) return;
                             }
-
                             if (self.selectedDistrictCode) {
                                 const dCode = data.dist_code || data.district_code;
                                 if (dCode !== self.selectedDistrictCode) return;
                             }
-
                             data.centers.forEach(c => {
                                 const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
                                 const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
@@ -1518,20 +1507,21 @@ export const MapModule = {
                                 else if (isPoll) pollOnly++;
                             });
                         });
-
-                        if (totalCenters > 0) {
-                            div.innerHTML += `
-                                <div class="legend-stats">
-                                    <div class="stat-row"><span class="stat-label">Centers:</span><span class="stat-value">${totalCenters}</span></div>
-                                    <div class="stat-row"><span class="stat-label">Stations:</span><span class="stat-value">${totalStations}</span></div>
-                                    <div class="stat-breakdown">
-                                        <div class="breakdown-item"><div class="breakdown-dot reg"></div><span>${regOnly}</span></div>
-                                        <div class="breakdown-item"><div class="breakdown-dot poll"></div><span>${pollOnly}</span></div>
-                                        <div class="breakdown-item"><div class="breakdown-dot both"></div><span>${both}</span></div>
-                                    </div>
-                                </div>`;
-                        }
                     }
+
+                    div.innerHTML = `
+                        <div class="legend-section centers-legend">
+                            <div class="legend-header">Election Centers</div>
+                            <div class="legend-items">
+                                <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Registration (${regOnly})</span></div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#FFD700;"></div><span>Polling (${pollOnly})</span></div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Combined (${both})</span></div>
+                            </div>
+                        </div>
+                        <div class="legend-stats" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,0,0,0.06)">
+                            <div class="stat-row"><span class="stat-label">Total Centers:</span><span class="stat-value">${totalCenters}</span></div>
+                            <div class="stat-row"><span class="stat-label">Total Stations:</span><span class="stat-value">${totalStations}</span></div>
+                        </div>`;
                 }
                 return div;
             }

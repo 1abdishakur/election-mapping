@@ -1060,6 +1060,7 @@ export const MapModule = {
     buildCentersLayer(geoJSON) {
         // Clear previous instances properly
         if (this.centersLayer) this.map.removeLayer(this.centersLayer);
+        if (this.activeCentersLayer) this.map.removeLayer(this.activeCentersLayer);
         if (this.coverageLayer) this.map.removeLayer(this.coverageLayer);
         if (this.heatLayer) this.map.removeLayer(this.heatLayer);
 
@@ -1300,30 +1301,34 @@ export const MapModule = {
     },
 
     // Central helper — decides what center markers to show based on
-    // current showCenters flag AND the stored _activeDistrictCode.
+    // current showCenters flag AND the stored selectedDistrictCode.
     _applyActiveCenters() {
-        // Always remove both layers first for a clean slate
-        if (this.centersLayer) this.centersLayer.remove();
+        if (!this.map) return;
+
+        // 1. Always remove both layers first for a clean slate
+        if (this.centersLayer) this.map.removeLayer(this.centersLayer);
         if (this.activeCentersLayer) {
-            this.activeCentersLayer.remove();
+            this.map.removeLayer(this.activeCentersLayer);
             this.activeCentersLayer = null;
         }
 
-        if (!this.showCenters) return; // Nothing to show
+        // 2. If toggle is OFF, stop here
+        if (!this.showCenters) return;
 
-        if (this._activeDistrictCode) {
+        // 3. Otherwise, show what's appropriate for the current focus
+        if (this.selectedDistrictCode) {
             // A district is selected — show only its centers
-            this._renderDistrictCenters(this._activeDistrictCode);
+            this._renderDistrictCenters(this.selectedDistrictCode);
         } else {
             // No district selected — show all centers
-            if (this.centersLayer) this.centersLayer.addTo(this.map);
+            if (this.centersLayer) this.map.addLayer(this.centersLayer);
         }
     },
 
     // Public entry — called by activateDistrict() and onReset()
     showDistrictCenters(districtCode) {
-        // Store the active district code so toggleCentersLayer can re-apply it
-        this._activeDistrictCode = districtCode || null;
+        // Unify with existing selectedDistrictCode property to avoid state drift
+        this.selectedDistrictCode = districtCode || null;
         this._applyActiveCenters();
     },
 

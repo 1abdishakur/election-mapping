@@ -1494,24 +1494,14 @@ export const MapModule = {
                         </div>
                     </div>`;
 
-                // Centers dot-type key + live stats — ONLY IF toggled ON
                 if (self.showCenters) {
                     div.innerHTML += `
                         <div class="legend-section centers-legend" style="margin-top:12px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 10px;">
                             <div class="legend-header">Election Centers</div>
                             <div class="legend-items">
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background:#0ea5e9;"></div>
-                                    <span>Registration</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background:#FFD700;"></div>
-                                    <span>Polling</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background:#10b981;"></div>
-                                    <span>Combined</span>
-                                </div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Registration</span></div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#FFD700;"></div><span>Polling</span></div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Combined</span></div>
                             </div>
                         </div>`;
 
@@ -1521,16 +1511,14 @@ export const MapModule = {
                             const data = layer.feature?.properties?.data;
                             if (!data || !data.centers) return;
 
-                            // Filter by selected state
                             if (self.selectedState && self.selectedState !== 'all') {
-                                const layerState = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
-                                if (layerState !== self.selectedState) return;
+                                const st = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
+                                if (st !== self.selectedState) return;
                             }
 
-                            // Filter by active district focus
                             if (self.selectedDistrictCode) {
-                                const layerDistrict = data.dist_code || data.district_code;
-                                if (layerDistrict !== self.selectedDistrictCode) return;
+                                const dCode = data.dist_code || data.district_code;
+                                if (dCode !== self.selectedDistrictCode) return;
                             }
 
                             data.centers.forEach(c => {
@@ -1544,35 +1532,20 @@ export const MapModule = {
                             });
                         });
 
-                    if (totalCenters > 0) {
-                        div.innerHTML += `
-                            <div class="legend-stats">
-                                <div class="stat-row">
-                                    <span class="stat-label">Centers:</span>
-                                    <span class="stat-value">${totalCenters}</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Stations:</span>
-                                    <span class="stat-value">${totalStations}</span>
-                                </div>
-                                <div class="stat-breakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-dot reg"></div>
-                                        <span>${regOnly}</span>
+                        if (totalCenters > 0) {
+                            div.innerHTML += `
+                                <div class="legend-stats">
+                                    <div class="stat-row"><span class="stat-label">Centers:</span><span class="stat-value">${totalCenters}</span></div>
+                                    <div class="stat-row"><span class="stat-label">Stations:</span><span class="stat-value">${totalStations}</span></div>
+                                    <div class="stat-breakdown">
+                                        <div class="breakdown-item"><div class="breakdown-dot reg"></div><span>${regOnly}</span></div>
+                                        <div class="breakdown-item"><div class="breakdown-dot poll"></div><span>${pollOnly}</span></div>
+                                        <div class="breakdown-item"><div class="breakdown-dot both"></div><span>${both}</span></div>
                                     </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-dot poll"></div>
-                                        <span>${pollOnly}</span>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-dot both"></div>
-                                        <span>${both}</span>
-                                    </div>
-                                </div>
-                            </div>`;
+                                </div>`;
+                        }
                     }
                 }
-
                 return div;
             }
 
@@ -1589,7 +1562,6 @@ export const MapModule = {
             const cfg = configs[self.currentMode] || configs.turnout;
             div.innerHTML = `<strong>${cfg.label}</strong>`;
 
-            // Histogram
             if (self.currentMode !== 'winner' && self.geoJSONLayer) {
                 const counts = new Array(cfg.stops.length).fill(0);
                 self.geoJSONLayer.eachLayer(layer => {
@@ -1621,18 +1593,11 @@ export const MapModule = {
                 if (self.geoJSONLayer) {
                     self.geoJSONLayer.eachLayer(layer => {
                         const w = layer.feature?.properties?.data?.winner;
-                        if (w && w.party_name) {
-                            winners.set(w.party_name, w.party_color || '#9ca3af');
-                        }
+                        if (w && w.party_name) winners.set(w.party_name, w.party_color || '#9ca3af');
                     });
                 }
-                if (winners.size === 0) {
-                    div.innerHTML += `<br><span style="color:#666">No Winner Data</span>`;
-                } else {
-                    winners.forEach((color, name) => {
-                        div.innerHTML += `<br><i style="background:${color}"></i>${name}`;
-                    });
-                }
+                if (winners.size === 0) div.innerHTML += `<br><span style="color:#666">No Winner Data</span>`;
+                else winners.forEach((color, name) => { div.innerHTML += `<br><i style="background:${color}"></i>${name}`; });
             } else {
                 cfg.stops.forEach((v, i) => {
                     div.innerHTML += `<br><i style="background:${cfg.colors[i]}"></i>${v.toLocaleString()}${cfg.suffix}+`;

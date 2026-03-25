@@ -1054,10 +1054,8 @@ export const MapModule = {
     },
 
     // ── Centers Layer & Advanced Features ─────────────────────
-    _getCenterStyle(isReg, isPoll) {
-        if (isReg && !isPoll) return { fillColor: '#0ea5e9', color: '#0369a1', weight: 1.5 };  // Blue = Registration
-        if (isPoll && !isReg) return { fillColor: '#FFD700', color: '#b45309', weight: 1.5 };  // Yellow = Polling
-        return { fillColor: '#10b981', color: '#047857', weight: 2 };                         // Green = Both
+    _getCenterStyle() {
+        return { fillColor: '#0ea5e9', color: '#0369a1', weight: 1.5 }; // Unified Professional Blue
     },
 
     buildCentersLayer(geoJSON) {
@@ -1101,9 +1099,7 @@ export const MapModule = {
                 const lng = parseFloat(c.longitude);
                 if (isNaN(lat) || isNaN(lng)) return;
 
-                const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
-                const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
-                const style = this._getCenterStyle(isReg, isPoll);
+                const style = this._getCenterStyle();
                 const radius = 8;
                 const labelText = c.center_name || 'Center';
                 const marker = L.circleMarker([lat, lng], {
@@ -1357,9 +1353,7 @@ export const MapModule = {
                     const lng = parseFloat(c.longitude);
                     if (isNaN(lat) || isNaN(lng)) return;
 
-                    const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
-                    const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
-                    const style = this._getCenterStyle(isReg, isPoll);
+                    const style = this._getCenterStyle();
                     const labelText = c.center_name || 'Center';
 
                     const marker = L.circleMarker([lat, lng], {
@@ -1484,7 +1478,7 @@ export const MapModule = {
             // 1. Default View: Centers legend (ONLY IF TOGGLED ON)
             if (self.currentMode === 'default') {
                 if (self.showCenters) {
-                    let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
+                    let totalCenters = 0, totalStations = 0;
                     if (self.geoJSONLayer) {
                         self.geoJSONLayer.eachLayer(layer => {
                             const data = layer.feature?.properties?.data;
@@ -1498,13 +1492,8 @@ export const MapModule = {
                                 if (dCode !== self.selectedDistrictCode) return;
                             }
                             data.centers.forEach(c => {
-                                const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
-                                const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
                                 totalCenters++;
                                 totalStations += parseInt(c.polling_stations_count) || 0;
-                                if (isReg && isPoll) both++;
-                                else if (isReg) regOnly++;
-                                else if (isPoll) pollOnly++;
                             });
                         });
                     }
@@ -1513,9 +1502,7 @@ export const MapModule = {
                         <div class="legend-section centers-legend">
                             <div class="legend-header">Election Centers</div>
                             <div class="legend-items">
-                                <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Registration (${regOnly})</span></div>
-                                <div class="legend-item"><div class="legend-dot" style="background:#FFD700;"></div><span>Polling (${pollOnly})</span></div>
-                                <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Combined (${both})</span></div>
+                                <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Active Centers</span></div>
                             </div>
                         </div>
                         <div class="legend-stats" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,0,0,0.06)">

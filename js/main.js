@@ -424,10 +424,8 @@ class ElectionDashboard {
             totalIdCards += d.id_cards_collected || 0;
             totalVotes += d.valid_votes || 0;
             totalInvalid += d.invalid_votes || 0;
-            totalPollingStations += d.centers?.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0) || 0;
-            pollingCentersCount += d.centers?.filter(c =>
-                String(c.is_polling_center).trim().toUpperCase() === 'TRUE'
-            ).length || 0;
+            totalPollingStations += d.centers?.reduce((sum, c) => sum + (parseInt(c.polling_stations_count) || 0), 0) || 0;
+            pollingCentersCount += d.centers?.length || 0;
 
             // Build per-party breakdown (only this party for focused view)
             partyVotes[partyCode] = (partyVotes[partyCode] || 0) + (pr.votes_received || 0);

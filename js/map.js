@@ -1479,24 +1479,15 @@ export const MapModule = {
             if (self.currentMode === 'default') {
                 if (self.showCenters) {
                     let totalCenters = 0, totalStations = 0;
-                    if (self.geoJSONLayer) {
-                        self.geoJSONLayer.eachLayer(layer => {
-                            const data = layer.feature?.properties?.data;
-                            if (!data || !data.centers) return;
-                            if (self.selectedState && self.selectedState !== 'all') {
-                                const st = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
-                                if (st !== self.selectedState) return;
-                            }
-                            if (self.selectedDistrictCode) {
-                                const dCode = data.dist_code || data.district_code;
-                                if (dCode !== self.selectedDistrictCode) return;
-                            }
-                            data.centers.forEach(c => {
-                                totalCenters++;
-                                totalStations += parseInt(c.polling_stations_count) || 0;
-                            });
-                        });
-                    }
+                    
+                    // The Global/State/District filtering has already been perfectly computed in DataJoiner 
+                    // and printed to the navbar badges. To guarantee 100% synchronization and instant updates,
+                    // we read those exact values rather than trying to replicate the filtering loop here.
+                    const centersBadge = document.getElementById('badge-centers-count');
+                    const stationsBadge = document.getElementById('badge-stations-count');
+                    
+                    if (centersBadge) totalCenters = parseInt(centersBadge.innerText.replace(/,/g, '')) || 0;
+                    if (stationsBadge) totalStations = parseInt(stationsBadge.innerText.replace(/,/g, '')) || 0;
 
                     div.innerHTML = `
                         <div class="legend-section centers-legend">

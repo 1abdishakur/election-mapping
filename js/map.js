@@ -23,6 +23,7 @@ export const MapModule = {
     _pinnedDistricts: [],
     _stateColorMap: {},
     _stateBordersLayer: null,
+    showCenters: false,
 
     // 12 vivid, maximally-distinct state border colors
     _STATE_PALETTE: [
@@ -349,7 +350,7 @@ export const MapModule = {
             onAdd: () => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom-toggle');
                 container.innerHTML = `
-                    <button id="map-toggle-centers" title="Toggle Centers">
+                    <button id="map-toggle-centers" title="Toggle Centers" class="${this.showCenters ? 'active' : ''}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
@@ -358,14 +359,7 @@ export const MapModule = {
                 `;
                 container.onclick = (e) => {
                     L.DomEvent.stopPropagation(e);
-                    const isOn = this.centersLayer && this.map.hasLayer(this.centersLayer);
-                    this.toggleCentersLayer(!isOn);
-                    const btn = document.getElementById('map-toggle-centers');
-                    if (isOn) {
-                        btn.classList.remove('active');
-                    } else {
-                        btn.classList.add('active');
-                    }
+                    this.toggleCentersLayer(!this.showCenters);
                 };
                 return container;
             }
@@ -387,6 +381,9 @@ export const MapModule = {
 
         // Build dissolved state outlines on top
         this._buildStateBorders(geoJSON);
+
+        // Update centers for this filtered set
+        this.buildCentersLayer(geoJSON);
 
         this.computeDynamicRanges();
         this.updateLegend();
@@ -761,7 +758,7 @@ export const MapModule = {
         // Panel dimensions
         const pw = this._hoverPanel.offsetWidth || 300;
         const ph = this._hoverPanel.offsetHeight || 300;
-        const gap = 0; // ZERO gap to ensure seamless transition to the panel
+        const gap = 20; // 20px gap to ensure cursor doesn't "get stuck" under the panel during hover transitions
 
         // X Positioning (Left vs Right)
         let left = px + gap;
@@ -789,12 +786,12 @@ export const MapModule = {
         if (this._panelLocked) return;
         if (this._hideTimer) clearTimeout(this._hideTimer);
         
-        // Give user 300ms to move mouse from polygon to the panel
+        // Give user 200ms to move mouse from polygon to the panel
         this._hideTimer = setTimeout(() => {
             if (!this._panelLocked && this._hoverPanel) {
                 this._hoverPanel.style.display = 'none';
             }
-        }, 300);
+        }, 200);
     },
 
     // ── Polygon Labels (divIcon sized to polygon pixels — zero overflow possible)
@@ -916,6 +913,8 @@ export const MapModule = {
             this.labelsLayer.addLayer(marker);
         });
         
+        // Labels are now attached to markers as tooltips, no separate management needed
+
         // Also update state labels sizing/visibility on zoom
         if (this._stateLabelsLayer) {
             const zoom = this.map.getZoom();
@@ -1045,7 +1044,7 @@ export const MapModule = {
                 this.geoJSONLayer.resetStyle(e.target);
             },
             click: e => {
-                this.map.fitBounds(e.target.getBounds(), { padding: [20, 20], maxZoom: 16 });
+                this.map.flyToBounds(e.target.getBounds(), { padding: [40, 40], duration: 1, maxZoom: 16 });
                 if (this.onDistrictClick && d) this.onDistrictClick(d);
             }
         });
@@ -1059,21 +1058,40 @@ export const MapModule = {
     },
 
     buildCentersLayer(geoJSON) {
-        // 1. Initialize Cluster Group
+        // Clear previous instances properly
+        if (this.centersLayer) this.map.removeLayer(this.centersLayer);
+        if (this.coverageLayer) this.map.removeLayer(this.coverageLayer);
+        if (this.heatLayer) this.map.removeLayer(this.heatLayer);
+
+        // 1. Initialize Marker Clustering for Centers (Professional Grouping)
         this.centersLayer = L.markerClusterGroup({
-            maxClusterRadius: 40,
             showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
             spiderfyOnMaxZoom: true,
-            disableClusteringAtZoom: 16
+            removeOutsideVisibleBounds: true,
+            disableClusteringAtZoom: 16,
+            maxClusterRadius: 35,
+            iconCreateFunction: (cluster) => {
+                const count = cluster.getChildCount();
+                return L.divIcon({
+                    html: `<div class="center-cluster-icon"><span>${count}</span></div>`,
+                    className: 'marker-cluster-custom',
+                    iconSize: [32, 32]
+                });
+            }
         });
 
         this.coverageLayer = L.layerGroup();
         const heatPoints = [];
 
+        // If centers should be shown, add them to map
+        if (this.showCenters) this.centersLayer.addTo(this.map);
+
         geoJSON.features.forEach(feature => {
             const d = feature.properties.data;
             if (!d || !d.centers) return;
 
+            let cnt = 0;
             d.centers.forEach(c => {
                 const lat = parseFloat(c.latitude);
                 const lng = parseFloat(c.longitude);
@@ -1081,44 +1099,31 @@ export const MapModule = {
 
                 const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
                 const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
-                const stations = parseInt(c.polling_stations_count) || 1;
-                
                 const style = this._getCenterStyle(isReg, isPoll);
-
-                // Feature 3: Polling Station Size Indicator
-                const radius = Math.max(6, Math.min(stations * 2, 20)); 
-                
-                // Feature 1: Proportional CircleMarker
+                const radius = 8;
+                const labelText = c.center_name || 'Center';
                 const marker = L.circleMarker([lat, lng], {
                     radius: radius,
                     fillColor: style.fillColor,
-                    fillOpacity: 0.8,
+                    fillOpacity: 0.95,
                     color: style.color,
-                    weight: style.weight,
-                    title: c.center_name // for search
+                    weight: style.weight
                 });
 
-                // Add permanent small label (Feature 9: Center Names)
-                marker.bindTooltip(`${c.center_name || 'Center'}`, {
+                // Attach label as permanent tooltip to the point
+                marker.bindTooltip(labelText, {
                     permanent: true,
-                    direction: 'right',
-                    className: 'center-label',
-                    offset: [radius, 0]
+                    direction: 'top',
+                    className: 'center-label-attached',
+                    offset: [0, -radius - 2],
+                    opacity: 1
                 });
 
-                // Feature 4: Center Info Popup
-                const popupHtml = `
-                    <div class="center-popup">
-                        <div class="cp-header">${c.center_name || 'Center'}</div>
-                        <div class="cp-body">
-                            <div class="cp-row"><span>District:</span> <strong>${d.dist_name || '—'}</strong></div>
-                            <div class="cp-row"><span>Type:</span> <strong>${isReg && isPoll ? 'Both' : (isReg ? 'Registration' : 'Polling')}</strong></div>
-                            <div class="cp-row"><span>Stations:</span> <strong>${stations}</strong></div>
-                            <div class="cp-row"><span>Voters:</span> <strong>${(c.registered_voters || 0).toLocaleString()}</strong></div>
-                        </div>
-                    </div>
-                `;
-                marker.bindPopup(popupHtml, { className: 'custom-center-popup' });
+                const stations = parseInt(c.polling_stations_count) || 1;
+
+                cnt++;
+
+ 
 
                 // Feature 6: Coverage Visualization (1km radius)
                 const coverage = L.circle([lat, lng], {
@@ -1186,8 +1191,7 @@ export const MapModule = {
         // Bind events
         setTimeout(() => {
             document.getElementById('chk-centers')?.addEventListener('change', e => {
-                if (e.target.checked) this.centersLayer.addTo(this.map);
-                else this.centersLayer.remove();
+                this.toggleCentersLayer(e.target.checked);
             });
             
             const coverageWrap = document.getElementById('coverage-radius-wrap');
@@ -1279,22 +1283,59 @@ export const MapModule = {
     },
 
     toggleCentersLayer(show) {
-        if (show) this.centersLayer.addTo(this.map);
-        else this.centersLayer.remove();
+        this.showCenters = show;
+        
+        // Sync Sidebar Button
+        const btn = document.getElementById('map-toggle-centers');
+        if (btn) btn.classList.toggle('active', show);
+
+        // Sync Layers Panel Checkbox
+        const chk = document.getElementById('chk-centers');
+        if (chk) chk.checked = show;
+
+        // Re-apply whatever is the current active district / global state
+        this._applyActiveCenters();
+
+        this.updateLegend(); // Refresh legend
     },
 
-    showDistrictCenters(districtCode) {
-        if (!this.map) return;
+    // Central helper — decides what center markers to show based on
+    // current showCenters flag AND the stored _activeDistrictCode.
+    _applyActiveCenters() {
+        // Always remove both layers first for a clean slate
+        if (this.centersLayer) this.centersLayer.remove();
         if (this.activeCentersLayer) {
             this.activeCentersLayer.remove();
             this.activeCentersLayer = null;
         }
-        if (!districtCode) return;
+
+        if (!this.showCenters) return; // Nothing to show
+
+        if (this._activeDistrictCode) {
+            // A district is selected — show only its centers
+            this._renderDistrictCenters(this._activeDistrictCode);
+        } else {
+            // No district selected — show all centers
+            if (this.centersLayer) this.centersLayer.addTo(this.map);
+        }
+    },
+
+    // Public entry — called by activateDistrict() and onReset()
+    showDistrictCenters(districtCode) {
+        // Store the active district code so toggleCentersLayer can re-apply it
+        this._activeDistrictCode = districtCode || null;
+        this._applyActiveCenters();
+    },
+
+    // Internal — builds and adds markers for a single district
+    _renderDistrictCenters(districtCode) {
+        if (!this.map || !this.geoJSONLayer) return;
 
         const markers = [];
         this.geoJSONLayer.eachLayer(layer => {
             const d = layer.feature?.properties?.data;
             if (d && (d.dist_code === districtCode || d.district_code === districtCode) && d.centers) {
+                let cnt = 0;
                 d.centers.forEach(c => {
                     const lat = parseFloat(c.latitude);
                     const lng = parseFloat(c.longitude);
@@ -1303,76 +1344,49 @@ export const MapModule = {
                     const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
                     const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
                     const style = this._getCenterStyle(isReg, isPoll);
+                    const labelText = c.center_name || 'Center';
 
                     const marker = L.circleMarker([lat, lng], {
                         radius: 8, fillColor: style.fillColor, fillOpacity: 0.95,
                         color: style.color, weight: style.weight
                     });
-                    marker.on('click', () => this._openCenterModal(c, d, isReg, isPoll));
+
+                    // Attach label as permanent tooltip to the point
+                    marker.bindTooltip(labelText, {
+                        permanent: true,
+                        direction: 'top',
+                        className: 'center-label-attached',
+                        offset: [0, -10],
+                        opacity: 1
+                    });
+
+                    const stations = parseInt(c.polling_stations_count) || 1;
+
+                    cnt++;
+
+ 
                     markers.push(marker);
                 });
             }
         });
 
         if (markers.length > 0) {
-            this.activeCentersLayer = window.L.markerClusterGroup ? L.markerClusterGroup() : L.layerGroup();
+            this.activeCentersLayer = L.markerClusterGroup({
+                disableClusteringAtZoom: 17,
+                maxClusterRadius: 30,
+                iconCreateFunction: (cluster) => {
+                    const count = cluster.getChildCount();
+                    return L.divIcon({
+                        html: `<div class="center-cluster-icon"><span>${count}</span></div>`,
+                        className: 'marker-cluster-custom',
+                        iconSize: [32, 32]
+                    });
+                }
+            });
+
             markers.forEach(m => this.activeCentersLayer.addLayer(m));
             this.activeCentersLayer.addTo(this.map);
         }
-    },
-
-    _openCenterModal(c, d, isReg, isPoll) {
-        const existing = document.getElementById('center-detail-modal');
-        if (existing) existing.remove();
-
-        const isBoth = isReg && isPoll;
-        const isRegOnly = isReg && !isPoll;
-
-        const modal = document.createElement('div');
-        modal.id = 'center-detail-modal';
-        modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);';
-
-        modal.innerHTML = `
-            <style>@keyframes cmUp{from{opacity:0;transform:translateY(20px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
-            <div style="background:var(--c-surface,#1e293b);border:1px solid var(--c-border,#334155);border-radius:20px;max-width:420px;width:94%;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,0.55);animation:cmUp 0.28s cubic-bezier(0.34,1.56,0.64,1);">
-                <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:22px;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;">
-                    <button onclick="document.getElementById('center-detail-modal').remove()" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);color:#94a3b8;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">&times;</button>
-                    <div style="display:flex;align-items:center;gap:14px;">
-                        <div style="width:46px;height:46px;border-radius:50%;flex-shrink:0;background:${isRegOnly ? '#222' : '#FFD700'};border:${isBoth ? '3px solid #FFD700;background:#111' : '2px solid rgba(255,255,255,0.2)'};box-shadow:0 4px 16px rgba(0,0,0,0.4);"></div>
-                        <div>
-                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#475569;margin-bottom:4px;">Voting Center</div>
-                            <div style="font-size:16px;font-weight:700;color:#f1f5f9;line-height:1.25;">${c.center_name || 'Unknown Center'}</div>
-                        </div>
-                    </div>
-                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                        ${isReg ? '<span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;">&#11200; Registration</span>' : ''}
-                        ${isPoll ? '<span style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:#fbbf24;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;">&#11044; Polling</span>' : ''}
-                    </div>
-                </div>
-                <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);">
-                    <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:12px;padding:14px;">
-                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px;">Polling Stations</div>
-                        <div style="font-size:26px;font-weight:800;color:#38bdf8;">${c.polling_stations_count || '0'}</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;">
-                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px;">District</div>
-                        <div style="font-size:14px;font-weight:700;color:#e2e8f0;">${d.district_name || '—'}</div>
-                    </div>
-                </div>
-                <div style="padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
-                        <div style="font-size:9px;color:#475569;margin-bottom:5px;text-transform:uppercase;">Latitude</div>
-                        <div style="font-size:12px;font-weight:600;color:#94a3b8;font-family:monospace;">${parseFloat(c.latitude).toFixed(6)}</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
-                        <div style="font-size:9px;color:#475569;margin-bottom:5px;text-transform:uppercase;">Longitude</div>
-                        <div style="font-size:12px;font-weight:600;color:#94a3b8;font-family:monospace;">${parseFloat(c.longitude).toFixed(6)}</div>
-                    </div>
-                </div>
-            </div>`;  
-
-        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-        document.body.appendChild(modal);
     },
 
     showDistrictFocus(districtCode) {
@@ -1394,7 +1408,7 @@ export const MapModule = {
 
         if (targetLayer) {
             targetLayer.bringToFront();
-            this.map.fitBounds(targetLayer.getBounds(), { padding: [20, 20], maxZoom: 16 });
+            this.map.flyToBounds(targetLayer.getBounds(), { padding: [40, 40], duration: 1, maxZoom: 16 });
         }
     },
 
@@ -1425,8 +1439,8 @@ export const MapModule = {
             })
         };
         this.renderDistricts(filtered);
-        if (this.geoJSONLayer.getBounds().isValid()) {
-            this.map.fitBounds(this.geoJSONLayer.getBounds(), { padding: [10, 10] });
+        if (this.geoJSONLayer && this.geoJSONLayer.getBounds().isValid()) {
+            this.map.flyToBounds(this.geoJSONLayer.getBounds(), { padding: [20, 20], duration: 1.2 });
         }
     },
 
@@ -1452,15 +1466,96 @@ export const MapModule = {
     updateLegend() {
         if (this.legendControl) this.legendControl.remove();
 
-        // In default mode, do not show the state border-color key
-        if (this.currentMode === 'default') {
-            return;
-        }
-
         const self = this;
         this.legendControl = L.control({ position: 'bottomleft' });
         this.legendControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
+
+            // 1. Default View: District Category legend + Centers legend (always shown)
+            if (self.currentMode === 'default') {
+                // Centers dot-type key — always visible in default view
+                div.innerHTML = `
+                    <div class="legend-section centers-legend">
+                        <div class="legend-header">Election Centers</div>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:#0ea5e9;"></div>
+                                <span>Registration</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:#FFD700;"></div>
+                                <span>Polling</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background:#10b981;"></div>
+                                <span>Combined</span>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // If centers layer is active, also show live totals filtered by current state/district
+                if (self.showCenters && self.geoJSONLayer) {
+                    let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
+                    self.geoJSONLayer.eachLayer(layer => {
+                        const data = layer.feature?.properties?.data;
+                        if (!data || !data.centers) return;
+
+                        // Filter by selected state
+                        if (self.selectedState && self.selectedState !== 'all') {
+                            const layerState = (layer.feature.properties.State || layer.feature.properties.state || '').trim();
+                            if (layerState !== self.selectedState) return;
+                        }
+
+                        // Filter by active district
+                        if (self._activeDistrictCode) {
+                            const layerDistrict = data.dist_code || data.district_code;
+                            if (layerDistrict !== self._activeDistrictCode) return;
+                        }
+
+                        data.centers.forEach(c => {
+                            const isReg = String(c.is_registration_center).toUpperCase() === 'TRUE';
+                            const isPoll = String(c.is_polling_center).toUpperCase() === 'TRUE';
+                            totalCenters++;
+                            totalStations += parseInt(c.polling_stations_count) || 0;
+                            if (isReg && isPoll) both++;
+                            else if (isReg) regOnly++;
+                            else if (isPoll) pollOnly++;
+                        });
+                    });
+
+                    if (totalCenters > 0) {
+                        div.innerHTML += `
+                            <div class="legend-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">Centers:</span>
+                                    <span class="stat-value">${totalCenters}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Stations:</span>
+                                    <span class="stat-value">${totalStations}</span>
+                                </div>
+                                <div class="stat-breakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-dot reg"></div>
+                                        <span>${regOnly}</span>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-dot poll"></div>
+                                        <span>${pollOnly}</span>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-dot both"></div>
+                                        <span>${both}</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                }
+
+                return div;
+            }
+
+            // 2. Choropleth Legend (non-default modes)
             const configs = {
                 turnout: { label: 'Voter Turnout', stops: self.modeRanges?.turnout || [0, 20, 40, 60, 80], colors: ['#ef4444', '#f97316', '#facc15', '#4ade80', '#16a34a'], suffix: '%' },
                 registered: { label: 'Registered Voters', stops: self.modeRanges?.registered || [0, 20, 40, 60, 80], colors: ['#fef08a', '#d9f99d', '#86efac', '#22c55e', '#166534'], suffix: '' },
@@ -1473,7 +1568,7 @@ export const MapModule = {
             const cfg = configs[self.currentMode] || configs.turnout;
             div.innerHTML = `<strong>${cfg.label}</strong>`;
 
-            // Calculate Histogram Data
+            // Histogram
             if (self.currentMode !== 'winner' && self.geoJSONLayer) {
                 const counts = new Array(cfg.stops.length).fill(0);
                 self.geoJSONLayer.eachLayer(layer => {
@@ -1517,39 +1612,10 @@ export const MapModule = {
                         div.innerHTML += `<br><i style="background:${color}"></i>${name}`;
                     });
                 }
-                return div;
-            }
-
-            cfg.stops.forEach((v, i) => {
-                div.innerHTML += `<br><i style="background:${cfg.colors[i]}"></i>${v.toLocaleString()}${cfg.suffix}+`;
-            });
-
-            // ── Centers & Stations summary ─────────────────────
-            if (self.geoJSONLayer) {
-                let totalCenters = 0, totalStations = 0, regOnly = 0, pollOnly = 0, both = 0;
-                self.geoJSONLayer.eachLayer(layer => {
-                    const data = layer.feature?.properties?.data;
-                    if (!data || !data.centers) return;
-                    data.centers.forEach(c => {
-                        const isReg = c.is_registration_center === 'TRUE' || c.is_registration_center === true;
-                        const isPoll = c.is_polling_center === 'TRUE' || c.is_polling_center === true;
-                        totalCenters++;
-                        totalStations += parseInt(c.polling_stations_count) || 0;
-                        if (isReg && isPoll) both++;
-                        else if (isReg) regOnly++;
-                        else if (isPoll) pollOnly++;
-                    });
+            } else {
+                cfg.stops.forEach((v, i) => {
+                    div.innerHTML += `<br><i style="background:${cfg.colors[i]}"></i>${v.toLocaleString()}${cfg.suffix}+`;
                 });
-                if (totalCenters > 0) {
-                    div.innerHTML += `
-                        <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);">
-                            <strong style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;">Centers</strong>
-                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a1a1a;border:1.5px solid #fff;margin-right:5px;vertical-align:middle;"></span>Registration: ${regOnly}
-                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FFD700;border:1.5px solid #1a1a1a;margin-right:5px;vertical-align:middle;"></span>Polling: ${pollOnly}
-                            <br><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a1a1a;border:2.5px solid #FFD700;margin-right:5px;vertical-align:middle;"></span>Both: ${both}
-                            <br><span style="color:#94a3b8;font-size:11px;">Total: ${totalCenters} centers · ${totalStations} stations</span>
-                        </div>`;
-                }
             }
 
             return div;

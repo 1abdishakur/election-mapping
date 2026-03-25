@@ -4,7 +4,7 @@ export const ChartsModule = {
     init() {
         Chart.defaults.font.family = 'Inter, sans-serif';
         Chart.defaults.font.size = 11;
-        
+
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
         this.updateTheme(currentTheme);
 
@@ -32,7 +32,7 @@ export const ChartsModule = {
         this.gridColor = isDark ? '#334155' : '#E5E7EB';
 
         Chart.defaults.color = this.textColor;
-        
+
         Object.entries(this.charts).forEach(([key, chart]) => {
             if (!chart || typeof chart.update !== 'function') return;
             if (chart.options.scales) {
@@ -47,7 +47,7 @@ export const ChartsModule = {
 
     update(summary, parties, districtMaster = [], isDistrictLevel = false) {
         if (!summary) return;
-        
+
         const partyList = Object.keys(parties || {}).map(pc => ({
             code: pc,
             name: parties[pc]?.party_name || pc,
@@ -68,7 +68,7 @@ export const ChartsModule = {
             this.charts.gender.data.labels = ['Male', 'Female', '']; // Add padding labels if needed, or just let Chart.js handle it
             this.charts.gender.data.datasets[0].data = [male, female];
             this.charts.gender.data.datasets[0].backgroundColor = ['#3b82f6', '#ec4899'];
-            this.charts.gender.options.scales.x.max = Math.max(male, female) * 1.5; 
+            this.charts.gender.options.scales.x.max = Math.max(male, female) * 1.5;
             this.charts.gender.update();
         }
 
@@ -87,7 +87,7 @@ export const ChartsModule = {
                 const stateName = (d.state?.state_name || '').trim();
                 return { name: d.district_name, margin: marginVal, pct: marginPct, state: stateName };
             })
-            .sort((a, b) => a.pct - b.pct);
+                .sort((a, b) => a.pct - b.pct);
         }
         this._competeAllData = compRaces;
         this._renderCompetitiveness();
@@ -165,7 +165,7 @@ export const ChartsModule = {
         }
 
         container.innerHTML = html;
-    },    
+    },
 
     _doughnut(id, valueLabel = 'Val') {
         return new Chart(document.getElementById(id), {
@@ -202,14 +202,14 @@ export const ChartsModule = {
                         const val = data.datasets[0].data[i];
                         const pct = (val / total) * 100;
                         if (pct < 3) return; // Hide labels for very small slices
-                        
+
                         const position = element.tooltipPosition();
                         ctx.font = 'bold 10px Inter';
                         ctx.textAlign = 'center';
-                        
+
                         // Show raw value and percentage in brackets
                         const text = `${val.toLocaleString()} (${pct.toFixed(0)}%)`;
-                        
+
                         // Add white stroke for contrast against any dark slice colors
                         ctx.lineJoin = 'round';
                         ctx.lineWidth = 2;
@@ -308,7 +308,7 @@ export const ChartsModule = {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: { duration: 450 },
-                layout: { padding: { right: 70, left: 10, top: 0, bottom: 0 } },
+                layout: { padding: { right: 70, left: 10, top: 10, bottom: 10 } },
                 plugins: {
                     legend: { display: false },
                     tooltip: { enabled: true }
@@ -338,7 +338,7 @@ export const ChartsModule = {
                         const meta = chart.getDatasetMeta(0);
                         const bar = meta.data[i];
                         if (!bar || val === 0) return;
-                        
+
                         const pct = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
                         ctx.fillStyle = this.textColor;
                         ctx.font = '800 11px Inter';

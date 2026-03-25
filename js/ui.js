@@ -514,21 +514,28 @@ export const UIController = {
         });
 
         const statusLabel = hasMajority 
-            ? `<span style="color:var(--c-accent)">${winner.name} has secured majority control</span>` 
+            ? `<span>${winner.name} has secured majority control</span>` 
             : `<span>Coalition Needed: <strong>${seatsToMajority} more seats</strong> to reach <strong>${majority}</strong></span>`;
 
         container.innerHTML = `
-            <div class="majority-info">
-                <span>Seat Majority Tracker</span>
-                <span>Target: ${majority}</span>
+            <div class="majority-card-header">
+                <span class="m-title">Seat Majority Tracker</span>
+                <div class="m-target">Target: <strong>${majority}</strong></div>
             </div>
-            <div class="majority-bar">
-                <div class="majority-marker" style="left: 50%;" title="Majority Line (${majority})"></div>
-                ${segmentsHtml}
+            <div class="m-progress-container">
+                <div class="m-progress-bar">
+                    <div class="m-marker" style="left: 50%;" title="Majority Line (${majority})"></div>
+                    ${segmentsHtml}
+                </div>
             </div>
-            <div class="majority-status">
-                <i style="background:${hasMajority ? 'var(--c-accent)' : 'var(--c-warn)'}"></i>
-                ${statusLabel}
+            <div class="m-status-card ${hasMajority ? 'secured' : 'needed'}">
+                <div class="m-status-icon">
+                    ${hasMajority 
+                        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>'
+                        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>'
+                    }
+                </div>
+                <div class="m-status-text">${statusLabel}</div>
             </div>
         `;
     }

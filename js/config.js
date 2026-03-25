@@ -1,6 +1,5 @@
 /**
  * Election Dashboard Configuration
- * Staff fields are now combined into election_operations.
  * Party data is derived from party_results.
  */
 
@@ -12,7 +11,6 @@ export const CONFIG = {
         districts: 'districts',
         party: 'party',
         party_results: 'party_results',
-        election_operations: 'election_operations',
         centers: 'centers',
         elected_candidates: 'elected_candidates'
     },

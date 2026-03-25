@@ -12,8 +12,7 @@ export const DataJoiner = {
         // Step 1: Normalize numbers for all numeric fields
         const normalizedTables = this.normalize(tables);
 
-        // Map tables for easier access
-        const { states, districts, party, party_results, election_operations, centers, elected_candidates } = normalizedTables;
+        const { states, districts, party, party_results, centers, elected_candidates } = normalizedTables;
 
         // Create lookups — trim keys to handle whitespace in CSV
         const statesLookup = states.reduce((acc, s) => { acc[String(s.state_code).trim()] = s; return acc; }, {});
@@ -77,11 +76,6 @@ export const DataJoiner = {
 
             // Join State
             district.state = statesLookup[district.state_code] || { state_name: 'Unknown' };
-
-            // Join Operations (includes staff fields)
-            district.operations = election_operations.find(op => (op.dist_code || op.district_code) === districtCode) || {};
-            // Staff fields are now in the same operations row
-            district.staff = district.operations;
 
             // Join Party Results (filtered by dist_code)
             district.party_results = party_results
@@ -163,7 +157,7 @@ export const DataJoiner = {
         const validR = sortByMode(districtMaster, d => d.valid_votes || 0);
         const invalidR = sortByMode(districtMaster, d => d.invalid_votes || 0);
         const seatsR = sortByMode(districtMaster, d => d.total_seats || 0);
-        const densityR = sortByMode(districtMaster, d => d.operations?.polling_stations_used || 0);
+        const densityR = sortByMode(districtMaster, d => d.centers.reduce((sum, c) => sum + (c.polling_stations_count || 0), 0));
         districtMaster.forEach(d => {
             d.ranks = {
                 turnout: turnoutR.indexOf(d) + 1,
@@ -236,8 +230,6 @@ export const DataJoiner = {
             };
         });
 
-        const ops = district.operations || {};
-        const staff = district.staff || {};
         const turnoutVotes = (district.valid_votes || 0) + (district.invalid_votes || 0);
 
         return {
@@ -261,7 +253,7 @@ export const DataJoiner = {
             totalInvalid: district.invalid_votes || 0,
             invalidPct: turnoutVotes > 0 ? (district.invalid_votes / turnoutVotes) * 100 : 0,
             pollingCentersCount: district.centers.filter(c => String(c.is_polling_center).trim().toUpperCase() === 'TRUE').length,
-            totalPollingStations: ops.polling_stations_used || 0,
+            totalPollingStations: district.centers.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0),
 
             totalSeats: district.total_seats || 0,
             overallWinner: district.winner || null,
@@ -275,14 +267,8 @@ export const DataJoiner = {
                 femaleWinners: genderStats.female
             },
             opStats: {
-                centers: ops.polling_centers_used || 0,
-                stations: ops.polling_stations_used || 0,
-                kits: ops.registration_kits_used || 0
-            },
-            staffStats: {
-                reg: staff.registration_staff_used || 0,
-                id: staff.id_distribution_staff_used || 0,
-                day: staff.election_day_staff_used || 0
+                centers: district.centers.filter(c => String(c.is_polling_center).trim().toUpperCase() === 'TRUE').length,
+                stations: district.centers.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0)
             },
             winners: district.winners || []
         };
@@ -297,8 +283,6 @@ export const DataJoiner = {
             'voters_turnout', 'valid_votes', 'invalid_votes', 'cadidates_submited',
             'male_cadidates', 'female_cadidates', 'votes_received', 'seats_won',
             'female_seats_won', 'male_seats_won', 'polling_stations_count',
-            'registration_centers_used', 'registration_kits_used', 'polling_centers_used', 'polling_stations_used',
-            'registration_staff_used', 'id_distribution_staff_used', 'election_day_staff_used',
             'latitude', 'longitude', 'seat_number'
         ];
 
@@ -359,9 +343,6 @@ export const DataJoiner = {
         let totalFemaleWinners = 0;
         let totalMaleWinners = 0;
         let totalPollingStations = 0;
-        let totalRegStaff = 0;
-        let totalIdStaff = 0;
-        let totalDayStaff = 0;
 
         const uniqueStates = new Set();
         const uniqueDistricts = new Set();
@@ -381,10 +362,6 @@ export const DataJoiner = {
             totalVotes += (d.valid_votes || 0);
             totalInvalid += (d.invalid_votes || 0);
             totalSeats += (d.total_seats || 0);
-            totalPollingStations += (d.operations.polling_stations_used || 0);
-            totalRegStaff += (d.operations.registration_staff_used || 0);
-            totalIdStaff += (d.operations.id_distribution_staff_used || 0);
-            totalDayStaff += (d.operations.election_day_staff_used || 0);
 
             d.party_results.forEach(pr => {
                 const pc = pr.party_code;
@@ -435,15 +412,32 @@ export const DataJoiner = {
             votes_received: partyVotes[overallWinnerCode]
         } : null;
 
-        // Prioritize the actual states table for the count (dynamic from Google Sheets)
         let totalStatesCount = uniqueStates.size;
         if (fullTables && fullTables.states && Array.isArray(fullTables.states) && fullTables.states.length > 0) {
             totalStatesCount = fullTables.states.length;
         }
 
+        let totalDistrictsCount = uniqueDistricts.size;
+        if (fullTables && fullTables.districts && Array.isArray(fullTables.districts) && fullTables.districts.length > 0) {
+            totalDistrictsCount = fullTables.districts.length;
+        }
+
+        let dynamicPollingCentersCount = pollingCentersCount;
+        let dynamicTotalPollingStations = totalPollingStations;
+
+        if (fullTables && fullTables.centers && Array.isArray(fullTables.centers) && fullTables.centers.length > 0) {
+            dynamicPollingCentersCount = 0;
+            dynamicTotalPollingStations = 0;
+            fullTables.centers.forEach(c => {
+                const isCenter = String(c.is_polling_center).trim().toUpperCase() === 'TRUE';
+                if (isCenter) dynamicPollingCentersCount++;
+                dynamicTotalPollingStations += (c.polling_stations_count || c.polling_stations_used || 0);
+            });
+        }
+
         return {
             totalStates: totalStatesCount,
-            totalDistricts: uniqueDistricts.size,
+            totalDistricts: totalDistrictsCount,
 
             candidates: {
                 total: totalCandidates,
@@ -463,8 +457,8 @@ export const DataJoiner = {
             validPct: turnoutVotes > 0 ? (totalVotes / turnoutVotes) * 100 : 0,
             totalInvalid,
             invalidPct: turnoutVotes > 0 ? (totalInvalid / turnoutVotes) * 100 : 0,
-            pollingCentersCount,
-            totalPollingStations,
+            pollingCentersCount: dynamicPollingCentersCount,
+            totalPollingStations: dynamicTotalPollingStations,
 
             totalSeats,
             overallWinner,
@@ -474,8 +468,7 @@ export const DataJoiner = {
                 maleWinners: totalMaleWinners,
                 femaleWinners: totalFemaleWinners
             },
-            opStats: { centers: pollingCentersCount, stations: totalPollingStations },
-            staffStats: { reg: totalRegStaff, id: totalIdStaff, day: totalDayStaff },
+            opStats: { centers: dynamicPollingCentersCount, stations: dynamicTotalPollingStations },
             overallTurnout: turnoutPct,
             partyVotes,
             partySeats,

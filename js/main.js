@@ -1,6 +1,6 @@
 import { DataLoader } from './dataLoader.js?v=170';
 import { DataJoiner } from './dataJoiner.js?v=170';
-import { MapModule } from './map.js?v=220';
+import { MapModule } from './map.js?v=221';
 import { ChartsModule } from './charts.js?v=171';
 import { UIController } from './ui.js?v=172';
 
@@ -34,8 +34,9 @@ class ElectionDashboard {
 
         });
 
-        this.allTables = rawTables;
-        const result = DataJoiner.processData(rawTables);
+        const normalizedTables = DataJoiner.normalize(rawTables);
+        this.allTables = normalizedTables;
+        const result = DataJoiner.processData(normalizedTables);
         this.masterData = result.districtMaster;
         this.globalSummary = result.summary;
         this.parties = result.parties;
@@ -68,6 +69,7 @@ class ElectionDashboard {
         UIController.updateKPIs(this.globalSummary);
         UIController.updateMiniPanel(this.globalSummary);
         UIController.renderPartyList(rawParties, code => this.onPartyClick(code));
+        UIController.updateMajorityTracker(this.globalSummary, this.parties);
         UIController.setContext('National Overview', 'Voter Turnout');
 
         const exportBtn = document.getElementById('export-map-btn');
@@ -96,7 +98,7 @@ class ElectionDashboard {
 
         setInterval(async () => {
             await this.refreshData();
-        }, 30000);
+        }, 60000);
     }
 
     async refreshData() {
@@ -112,9 +114,10 @@ class ElectionDashboard {
             });
 
             const rawTables = await DataLoader.loadAllTables();
-            this.allTables = rawTables;
+            const normalizedTables = DataJoiner.normalize(rawTables);
+            this.allTables = normalizedTables;
             
-            const result = DataJoiner.processData(rawTables);
+            const result = DataJoiner.processData(normalizedTables);
             this.masterData = result.districtMaster;
             this.globalSummary = result.summary;
             this.parties = result.parties;
@@ -218,6 +221,8 @@ class ElectionDashboard {
             UIController.updateMiniPanel(summary);
             ChartsModule.update(summary, this.parties);
             this.updatePartyList(summary);
+            UIController.updateMajorityTracker(summary, this.parties);
+            
             const sel = document.getElementById('choropleth-mode');
             const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
             UIController.setContext('State Overview', modeLabel);
@@ -309,24 +314,7 @@ class ElectionDashboard {
     }
 
     onShowAllParties() {
-        AppState.selectedParty = null;
-        UIController.clearPartySelection();
-        MapModule.resetStyles();
-        MapModule.clearPinnedDistricts(); // Clear comparison on "See All"
-
-        const filtered = this.filterDistricts();
-        const summary = DataJoiner.computeGlobalTotals(filtered, this.parties, this.allTables);
-        UIController.updateKPIs(summary);
-        UIController.updateMiniPanel(summary);
-        ChartsModule.update(summary, this.parties);
-
-        // Use global summary if nothing selected, else use filtered summary
-        this.updatePartyList(summary);
-
-        MapModule.setMode('default');
-        const sel = document.getElementById('choropleth-mode');
-        const modeLabel = sel ? sel.options[sel.selectedIndex].text : 'Default View';
-        UIController.setContext('All Parties', modeLabel);
+        this.onReset();
     }
 
     onReset() {
@@ -346,8 +334,8 @@ class ElectionDashboard {
         MapModule.clearPinnedDistricts(); // Clear comparison on Reset
         MapModule.setMode('default');
 
-        if (MapModule.geoJSONLayer?.getBounds().isValid()) {
-            MapModule.map.fitBounds(MapModule.geoJSONLayer.getBounds());
+        if (MapModule.geoJSONLayer && MapModule.geoJSONLayer.getBounds().isValid()) {
+            MapModule.map.flyToBounds(MapModule.geoJSONLayer.getBounds(), { padding: [20, 20], duration: 1.2 });
         }
         MapModule.showDistrictCenters(null);
 
@@ -355,6 +343,7 @@ class ElectionDashboard {
         UIController.updateMiniPanel(this.globalSummary);
         ChartsModule.update(this.globalSummary, this.parties, this.masterData);
         this.updatePartyList(this.globalSummary, false);
+        UIController.updateMajorityTracker(this.globalSummary, this.parties);
 
         MapModule.setMode('default');
         const sel = document.getElementById('choropleth-mode');
@@ -435,7 +424,7 @@ class ElectionDashboard {
             totalIdCards += d.id_cards_collected || 0;
             totalVotes += d.valid_votes || 0;
             totalInvalid += d.invalid_votes || 0;
-            totalPollingStations += (d.operations?.polling_stations_used || 0);
+            totalPollingStations += d.centers?.reduce((sum, c) => sum + (c.polling_stations_count || c.polling_stations_used || 0), 0) || 0;
             pollingCentersCount += d.centers?.filter(c =>
                 String(c.is_polling_center).trim().toUpperCase() === 'TRUE'
             ).length || 0;
@@ -492,7 +481,6 @@ class ElectionDashboard {
                 femaleWinners: femaleSeats
             },
             opStats: { centers: pollingCentersCount, stations: totalPollingStations },
-            staffStats: { reg: 0, id: 0, day: 0 },
             overallTurnout: turnoutPct
         };
     }

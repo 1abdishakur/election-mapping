@@ -15,13 +15,14 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
-
-
-    <!-- Leaflet MarkerCluster -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-label-collision@1.0.2/dist/leaflet-label-collision.min.js"></script>
+
+
+
+ 
 
     <!-- Leaflet Heatmap -->
     <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -152,6 +153,7 @@
 
             <!-- Main Content Area (Map + Search) -->
             <div class="center-area">
+
                 <!-- Top KPI Bar -->
                 <div class="kpi-bar glass-panel m-3">
                     <div class="kpi-row">
@@ -199,18 +201,16 @@
             <aside class="sidebar charts-sidebar" id="charts-sidebar">
                 <div class="sidebar-resizer resizer-right" id="resizer-right"></div>
                 <div class="sidebar-top">
-                    <span class="sidebar-title">Analytics</span>
                     <button class="toggle-btn" id="toggle-charts" title="Toggle Panel">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 18l6-6-6-6" />
                         </svg>
                     </button>
+                    <span class="sidebar-title">Analytics</span>
                 </div>
                 
                 <!-- Seat Majority Tracker -->
-                <div id="majority-tracker" class="majority-tracker-container">
-                    <!-- Injected by UIController -->
-                </div>
+                <div id="majority-tracker" class="majority-tracker-container"></div>
 
                 <div class="sidebar-scroll">
                     <!-- 1: Elected Candidates (Dynamic) -->
@@ -230,7 +230,7 @@
                     <!-- 3: Gender Split -->
                     <div class="chart-block" style="height: auto; flex: none;">
                         <div class="chart-title">Elected Gender Split</div>
-                        <div style="height: 70px; position: relative;">
+                        <div style="height: 95px; position: relative;">
                             <canvas id="genderChart"></canvas>
                         </div>
                     </div>

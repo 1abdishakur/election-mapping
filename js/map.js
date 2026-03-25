@@ -368,6 +368,7 @@ export const MapModule = {
     },
 
     renderDistricts(geoJSON) {
+        this._lastGeoJSON = geoJSON;
         if (this.geoJSONLayer) this.geoJSONLayer.remove();
 
         // Build the state→color map from ALL GeoJSON features
@@ -1156,7 +1157,7 @@ export const MapModule = {
             div.innerHTML = `
                 <div class="lc-title" style="font-size: 10px; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">Map Layers</div>
                 <label style="font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                    <input type="checkbox" id="chk-centers"> Show Centers
+                    <input type="checkbox" id="chk-centers" ${this.showCenters ? 'checked' : ''}> Show Centers
                 </label>
                 <label style="font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" id="chk-coverage"> Coverage Range
@@ -1305,29 +1306,32 @@ export const MapModule = {
     _applyActiveCenters() {
         if (!this.map) return;
 
-        // 1. Always remove both known layer references first
-        if (this.centersLayer) this.map.removeLayer(this.centersLayer);
-        if (this.activeCentersLayer) {
-            this.map.removeLayer(this.activeCentersLayer);
-            this.activeCentersLayer = null;
-        }
-
-        // 2. Aggressive Cleanup: Find and remove any stray cluster layers that might have leaked
-        // This handles cases where references were lost due to re-initialization
+        // 1. Aggressive Deep Cleanup: Find and kill all election-center related layers
+        // We use a custom flag _isElectionLayer to ensure we catch everything even if refs change
         this.map.eachLayer(layer => {
-            if (layer instanceof L.MarkerClusterGroup) {
+            if (layer._isElectionLayer || layer instanceof L.MarkerClusterGroup) {
                 this.map.removeLayer(layer);
             }
         });
 
-        // 3. If toggle is OFF, stop here
+        // Clear references
+        if (this.centersLayer) this.centersLayer = null;
+        if (this.activeCentersLayer) this.activeCentersLayer = null;
+
+        // 2. If toggle is OFF, stop here
         if (!this.showCenters) return;
 
-        // 4. Otherwise, show what's appropriate for the current focus
+        // 3. Otherwise, rebuild and show what's appropriate for the current focus
+        // We always rebuild here to ensure the data matches the new context perfectly
         if (this.selectedDistrictCode) {
             this._renderDistrictCenters(this.selectedDistrictCode);
         } else {
-            if (this.centersLayer) this.map.addLayer(this.centersLayer);
+            // Re-render Global/State centers if no specific district focus
+            this.buildCentersLayer(this._lastGeoJSON || null);
+            if (this.centersLayer) {
+                this.centersLayer._isElectionLayer = true;
+                this.map.addLayer(this.centersLayer);
+            }
         }
     },
 
@@ -1346,7 +1350,6 @@ export const MapModule = {
         this.geoJSONLayer.eachLayer(layer => {
             const d = layer.feature?.properties?.data;
             if (d && (d.dist_code === districtCode || d.district_code === districtCode) && d.centers) {
-                let cnt = 0;
                 d.centers.forEach(c => {
                     const lat = parseFloat(c.latitude);
                     const lng = parseFloat(c.longitude);
@@ -1362,7 +1365,6 @@ export const MapModule = {
                         color: style.color, weight: style.weight
                     });
 
-                    // Attach label as permanent tooltip to the point
                     marker.bindTooltip(labelText, {
                         permanent: true,
                         direction: 'top',
@@ -1370,12 +1372,6 @@ export const MapModule = {
                         offset: [0, -10],
                         opacity: 1
                     });
-
-                    const stations = parseInt(c.polling_stations_count) || 1;
-
-                    cnt++;
-
- 
                     markers.push(marker);
                 });
             }
@@ -1395,6 +1391,7 @@ export const MapModule = {
                 }
             });
 
+            this.activeCentersLayer._isElectionLayer = true;
             markers.forEach(m => this.activeCentersLayer.addLayer(m));
             this.activeCentersLayer.addTo(this.map);
         }
@@ -1482,21 +1479,11 @@ export const MapModule = {
         this.legendControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
 
-            // 1. Default View: District Category legend + Centers legend (ONLY IF TOGGLED ON)
+            // 1. Default View: Centers legend (ONLY IF TOGGLED ON)
             if (self.currentMode === 'default') {
-                div.innerHTML = `
-                    <div class="legend-section categories-legend">
-                        <div class="legend-header">District Categories</div>
-                        <div class="legend-items">
-                            <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8;"></div><span>Cat A (Urban)</span></div>
-                            <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div><span>Cat B (Township)</span></div>
-                            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div><span>Cat C (Rural)</span></div>
-                        </div>
-                    </div>`;
-
                 if (self.showCenters) {
-                    div.innerHTML += `
-                        <div class="legend-section centers-legend" style="margin-top:12px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 10px;">
+                    div.innerHTML = `
+                        <div class="legend-section centers-legend">
                             <div class="legend-header">Election Centers</div>
                             <div class="legend-items">
                                 <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9;"></div><span>Registration</span></div>

@@ -1338,6 +1338,7 @@ export const MapModule = {
         // Unify with existing selectedDistrictCode property to avoid state drift
         this.selectedDistrictCode = districtCode || null;
         this._applyActiveCenters();
+        this.updateLegend();
     },
 
     // Internal — builds and adds markers for a single district
@@ -1486,8 +1487,8 @@ export const MapModule = {
                     const centersBadge = document.getElementById('badge-centers-count');
                     const stationsBadge = document.getElementById('badge-stations-count');
                     
-                    if (centersBadge) totalCenters = parseInt(centersBadge.innerText.replace(/,/g, '')) || 0;
-                    if (stationsBadge) totalStations = parseInt(stationsBadge.innerText.replace(/,/g, '')) || 0;
+                    if (centersBadge) totalCenters = parseInt(centersBadge.textContent.replace(/,/g, '')) || 0;
+                    if (stationsBadge) totalStations = parseInt(stationsBadge.textContent.replace(/,/g, '')) || 0;
 
                     div.innerHTML = `
                         <div class="legend-section centers-legend">
